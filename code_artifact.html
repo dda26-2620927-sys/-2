@@ -1,0 +1,2495 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>종이 절약 환경·에너지 효과 &amp; 이면지 분류 시뮬레이터</title>
+  <!-- Tailwind CSS CDN 로드 -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Noto Sans KR & Inter 로드 -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    /* 기본 폰트 및 부드러운 스크롤 설정 */
+    body {
+      font-family: 'Noto Sans KR', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #f3faf6;
+      color: #1e293b;
+    }
+
+    /* 커스텀 범위 슬라이더 디자인 */
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      height: 8px;
+      border-radius: 9999px;
+      background: #d1fae5;
+      outline: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #059669;
+      border: 3px solid #ffffff;
+      box-shadow: 0 2px 6px rgba(5, 150, 105, 0.4);
+      cursor: pointer;
+      transition: transform 0.15s ease, background-color 0.15s ease;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.12);
+      background: #047857;
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #059669;
+      border: 3px solid #ffffff;
+      box-shadow: 0 2px 6px rgba(5, 150, 105, 0.4);
+      cursor: pointer;
+      transition: transform 0.15s ease, background-color 0.15s ease;
+    }
+
+    /* 소나무가 자라나는 애니메이션 */
+    @keyframes sproutTree {
+      0% {
+        opacity: 0;
+        transform: scale(0.2) translateY(10px);
+      }
+      70% {
+        opacity: 1;
+        transform: scale(1.15) translateY(-2px);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+
+    .tree-sprout {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      animation: sproutTree 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      user-select: none;
+    }
+
+    /* 3D 종이 카드 뒤집기 스타일 */
+    .paper-scene {
+      perspective: 1300px;
+    }
+
+    .paper-card-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      transition: transform 0.65s cubic-bezier(0.34, 1.36, 0.64, 1);
+      transform-style: preserve-3d;
+      cursor: pointer;
+    }
+
+    .paper-card-inner.is-flipped {
+      transform: rotateY(180deg);
+    }
+
+    .paper-face {
+      position: absolute;
+      inset: 0;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      border-radius: 0.5rem;
+      box-shadow: 0 12px 28px -6px rgba(15, 23, 42, 0.22), 0 4px 10px -2px rgba(15, 23, 42, 0.12);
+    }
+
+    .paper-back {
+      transform: rotateY(180deg);
+    }
+
+    /* 실제 A4 종이 질감 및 특수 효과 */
+    .real-paper-sheet {
+      background-color: #fcfcfb;
+      background-image: radial-gradient(rgba(148, 163, 184, 0.08) 1px, transparent 0);
+      background-size: 16px 16px;
+    }
+
+    /* 유광 비닐 코팅 반사 광택 효과 */
+    .glossy-sheen {
+      background: linear-gradient(
+        125deg,
+        rgba(255, 255, 255, 0) 20%,
+        rgba(255, 255, 255, 0.65) 38%,
+        rgba(255, 255, 255, 0.15) 52%,
+        rgba(255, 255, 255, 0.55) 68%,
+        rgba(255, 255, 255, 0) 85%
+      );
+      pointer-events: none;
+    }
+
+    /* 교실 나무 책상 배경 질감 */
+    .wood-desk-bg {
+      background-color: #d6a874;
+      background-image:
+        repeating-linear-gradient(
+          90deg,
+          rgba(120, 66, 18, 0.07) 0px,
+          rgba(120, 66, 18, 0.07) 2px,
+          transparent 2px,
+          transparent 18px
+        ),
+        linear-gradient(135deg, #deb484 0%, #c8945c 50%, #b8824a 100%);
+    }
+
+    /* 채점 도장 애니메이션 */
+    @keyframes stampPop {
+      0% {
+        opacity: 0;
+        transform: scale(2.1) rotate(-18deg);
+      }
+      70% {
+        opacity: 1;
+        transform: scale(0.95) rotate(-10deg);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1) rotate(-12deg);
+      }
+    }
+
+    .stamp-badge {
+      animation: stampPop 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    /* 오답 흔들림 애니메이션 */
+    @keyframes gentleShake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-7px); }
+      40% { transform: translateX(7px); }
+      60% { transform: translateX(-5px); }
+      80% { transform: translateX(5px); }
+    }
+
+    .shake-card {
+      animation: gentleShake 0.4s ease-in-out;
+    }
+  </style>
+</head>
+<body class="min-h-screen antialiased selection:bg-emerald-200 selection:text-emerald-900">
+
+  <!-- 상단 헤더 영역 -->
+  <header class="bg-gradient-to-r from-emerald-800 via-emerald-700 to-teal-700 text-white shadow-lg">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-sm text-emerald-100 text-xs sm:text-sm font-semibold mb-3">
+            <span>🌱</span>
+            <span>탄소중립 · 수학 함수 · 이면지 실천 통합 시뮬레이션</span>
+          </div>
+          <h1 class="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight leading-tight">
+            종이 절약 환경·에너지 효과 시뮬레이터
+          </h1>
+          <p class="mt-2 text-emerald-100 text-sm sm:text-base max-w-2xl leading-relaxed">
+            A4 용지 1장을 아낄 때 절감되는 에너지와 이산화탄소(CO₂)를 일차함수 그래프로 확인하고,
+            교실 이면지함 분류 체험을 통해 올바른 자원 순환 습관까지 직접 테스트해 보세요!
+          </p>
+        </div>
+        <div class="flex items-center gap-3 self-start md:self-center">
+          <button
+            id="reset-btn"
+            type="button"
+            class="px-4 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 active:scale-95 text-white text-sm font-semibold border border-white/25 transition flex items-center gap-2 shadow-sm"
+          >
+            <span>🔄</span>
+            <span>기본값 초기화</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- 메인 콘텐츠 컨테이너 -->
+  <main class="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-8">
+
+    <!-- 1. A4 용지 1장당 생산 에너지 및 환경 부하 기준 섹션 -->
+    <section aria-labelledby="baseline-heading" class="bg-white rounded-3xl p-5 sm:p-7 shadow-sm border border-emerald-100">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-5">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-emerald-600">STEP 01 · 기준 데이터</span>
+          <h2 id="baseline-heading" class="text-lg sm:text-xl font-bold text-slate-800 mt-0.5">
+            📄 A4 용지 1장(약 5g) 생산에 필요한 에너지 및 환경 부하 기준
+          </h2>
+        </div>
+        <span class="inline-flex items-center px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold border border-emerald-200 self-start sm:self-center">
+          1장 절약 = 아래 자원을 모두 아끼는 효과!
+        </span>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- 기준 1: 소비 에너지 -->
+        <div class="rounded-2xl bg-amber-50/70 border border-amber-200/80 p-4 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-bold text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded-full">소비 에너지</span>
+              <span class="text-xl" aria-hidden="true">⚡</span>
+            </div>
+            <div class="text-2xl font-extrabold text-slate-900">28 Wh</div>
+            <div class="text-xs font-semibold text-amber-800 mt-0.5">0.028 kWh / 100.8 kJ</div>
+          </div>
+          <p class="text-xs text-slate-600 mt-3 pt-2.5 border-t border-amber-200/60 leading-relaxed">
+            스마트폰 약 <strong>2회</strong> 충전 또는 10W LED 전구 <strong>2.8시간</strong> 점등 에너지
+          </p>
+        </div>
+
+        <!-- 기준 2: 이산화탄소 배출량 -->
+        <div class="rounded-2xl bg-sky-50/70 border border-sky-200/80 p-4 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-bold text-sky-800 bg-sky-100 px-2.5 py-0.5 rounded-full">CO₂ 배출량</span>
+              <span class="text-xl" aria-hidden="true">🌍</span>
+            </div>
+            <div class="text-2xl font-extrabold text-slate-900">2.88 g</div>
+            <div class="text-xs font-semibold text-sky-800 mt-0.5">0.00288 kg CO₂</div>
+          </div>
+          <p class="text-xs text-slate-600 mt-3 pt-2.5 border-t border-sky-200/60 leading-relaxed">
+            벌목·펄프 가공·제지·운송 과정에서 발생하는 온실가스 배출량
+          </p>
+        </div>
+
+        <!-- 기준 3: 물 소비량 -->
+        <div class="rounded-2xl bg-cyan-50/70 border border-cyan-200/80 p-4 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-bold text-cyan-800 bg-cyan-100 px-2.5 py-0.5 rounded-full">물 소비량</span>
+              <span class="text-xl" aria-hidden="true">💧</span>
+            </div>
+            <div class="text-2xl font-extrabold text-slate-900">10 L</div>
+            <div class="text-xs font-semibold text-cyan-800 mt-0.5">500mL 생수병 20병</div>
+          </div>
+          <p class="text-xs text-slate-600 mt-3 pt-2.5 border-t border-cyan-200/60 leading-relaxed">
+            펄프 세척 및 종이 제조 공정에서 소비되는 깨끗한 수자원
+          </p>
+        </div>
+
+        <!-- 기준 4: 소나무 흡수 및 원목 기준 -->
+        <div class="rounded-2xl bg-emerald-50/80 border border-emerald-200/80 p-4 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-bold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full">소나무 기준</span>
+              <span class="text-xl" aria-hidden="true">🌲</span>
+            </div>
+            <div class="text-2xl font-extrabold text-slate-900">연 6.6 kg</div>
+            <div class="text-xs font-semibold text-emerald-800 mt-0.5">30년생 소나무 1그루 CO₂ 흡수</div>
+          </div>
+          <p class="text-xs text-slate-600 mt-3 pt-2.5 border-t border-emerald-200/60 leading-relaxed">
+            A4 <strong>약 2,292장</strong> = 소나무 1그루 1년 흡수량 / <strong>10,000장</strong> = 원목 1그루 보호
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. 여러 명 절약 조건 설정 섹션 -->
+    <section aria-labelledby="controls-heading" class="bg-white rounded-3xl p-5 sm:p-7 shadow-sm border border-emerald-100">
+      <div class="mb-6">
+        <span class="text-xs font-bold uppercase tracking-wider text-emerald-600">STEP 02 · 참여 조건 설정</span>
+        <h2 id="controls-heading" class="text-lg sm:text-xl font-bold text-slate-800 mt-0.5">
+          👥 여러 명이 함께 종이를 절약하는 조건을 설정해 보세요
+        </h2>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- 컨트롤 1: 참여 인원 수 -->
+        <div class="rounded-2xl bg-slate-50 p-5 border border-slate-200/80 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <label for="people-input" class="text-sm font-bold text-slate-700 flex items-center gap-1.5">
+                <span>🧑‍🤝‍🧑</span>
+                <span>참여 인원 수 (명)</span>
+              </label>
+              <div class="flex items-center gap-1.5">
+                <input
+                  id="people-input"
+                  type="number"
+                  min="1"
+                  max="100000"
+                  value="30"
+                  class="w-24 px-2.5 py-1.5 text-right font-extrabold text-emerald-700 bg-white border border-emerald-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
+                />
+                <span class="text-sm font-bold text-slate-600">명</span>
+              </div>
+            </div>
+
+            <input
+              id="people-slider"
+              type="range"
+              min="1"
+              max="1000"
+              value="30"
+              aria-label="참여 인원 수 슬라이더"
+              class="w-full my-2"
+            />
+            <div class="flex justify-between text-[11px] font-medium text-slate-400 px-0.5">
+              <span>1명</span>
+              <span>250명</span>
+              <span>500명</span>
+              <span>750명</span>
+              <span>1,000명</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2 mt-4">
+            <button type="button" data-people="1" class="preset-people px-3 py-2 rounded-xl text-xs font-bold border transition">
+              나 혼자 (1명)
+            </button>
+            <button type="button" data-people="30" class="preset-people px-3 py-2 rounded-xl text-xs font-bold border transition">
+              우리 반 (30명)
+            </button>
+            <button type="button" data-people="300" class="preset-people px-3 py-2 rounded-xl text-xs font-bold border transition">
+              한 학년 (300명)
+            </button>
+            <button type="button" data-people="900" class="preset-people px-3 py-2 rounded-xl text-xs font-bold border transition">
+              전교생 (900명)
+            </button>
+          </div>
+        </div>
+
+        <!-- 컨트롤 2: 1인당 하루 절약 장수 -->
+        <div class="rounded-2xl bg-slate-50 p-5 border border-slate-200/80 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <label for="sheets-input" class="text-sm font-bold text-slate-700 flex items-center gap-1.5">
+                <span>📝</span>
+                <span>1인당 하루 절약 장수</span>
+              </label>
+              <div class="flex items-center gap-1.5">
+                <input
+                  id="sheets-input"
+                  type="number"
+                  min="1"
+                  max="500"
+                  value="3"
+                  class="w-20 px-2.5 py-1.5 text-right font-extrabold text-emerald-700 bg-white border border-emerald-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
+                />
+                <span class="text-sm font-bold text-slate-600">장</span>
+              </div>
+            </div>
+
+            <input
+              id="sheets-slider"
+              type="range"
+              min="1"
+              max="50"
+              value="3"
+              aria-label="1인당 하루 절약 장수 슬라이더"
+              class="w-full my-2"
+            />
+            <div class="flex justify-between text-[11px] font-medium text-slate-400 px-0.5">
+              <span>1장</span>
+              <span>10장</span>
+              <span>25장</span>
+              <span>40장</span>
+              <span>50장</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-4 gap-2 mt-4">
+            <button type="button" data-sheets="1" class="preset-sheets px-2 py-2.5 rounded-xl text-xs font-bold border transition">
+              1장
+            </button>
+            <button type="button" data-sheets="3" class="preset-sheets px-2 py-2.5 rounded-xl text-xs font-bold border transition">
+              3장
+            </button>
+            <button type="button" data-sheets="5" class="preset-sheets px-2 py-2.5 rounded-xl text-xs font-bold border transition">
+              5장
+            </button>
+            <button type="button" data-sheets="10" class="preset-sheets px-2 py-2.5 rounded-xl text-xs font-bold border transition">
+              10장
+            </button>
+          </div>
+        </div>
+
+        <!-- 컨트롤 3: 절약 기간 선택 -->
+        <div class="rounded-2xl bg-slate-50 p-5 border border-slate-200/80 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-sm font-bold text-slate-700 flex items-center gap-1.5">
+                <span>📅</span>
+                <span>절약 실천 기간</span>
+              </span>
+              <span id="days-badge" class="px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 text-xs font-extrabold">
+                365일 (1년)
+              </span>
+            </div>
+            <p class="text-xs text-slate-500 leading-relaxed mb-4">
+              하루의 작은 습관이 일주일, 한 달, 1년 동안 꾸준히 모였을 때의 누적 환경 보호 효과를 확인하세요.
+            </p>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2.5">
+            <button type="button" data-days="1" class="preset-days px-3 py-3 rounded-xl text-xs sm:text-sm font-bold border transition">
+              1일 (1일)
+            </button>
+            <button type="button" data-days="7" class="preset-days px-3 py-3 rounded-xl text-xs sm:text-sm font-bold border transition">
+              1주일 (7일)
+            </button>
+            <button type="button" data-days="30" class="preset-days px-3 py-3 rounded-xl text-xs sm:text-sm font-bold border transition">
+              1개월 (30일)
+            </button>
+            <button type="button" data-days="365" class="preset-days px-3 py-3 rounded-xl text-xs sm:text-sm font-bold border transition">
+              1년 (365일)
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 실시간 총 절약 용지 요약 배너 -->
+      <div class="mt-6 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white p-4 sm:p-5 shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 rounded-2xl bg-white/20 flex items-center justify-center text-2xl shrink-0">
+            📑
+          </div>
+          <div>
+            <div class="text-xs sm:text-sm text-emerald-100 font-medium" id="formula-summary">
+              30명 × 하루 3장 × 365일 실천 시
+            </div>
+            <div class="text-xl sm:text-2xl font-extrabold tracking-tight">
+              총 절약한 A4 용지: <span id="total-sheets" class="underline decoration-emerald-300 decoration-2 underline-offset-4">32,850</span> 장
+            </div>
+          </div>
+        </div>
+        <div class="px-3.5 py-2 rounded-xl bg-black/15 text-xs sm:text-sm font-semibold text-emerald-50 self-stretch sm:self-center flex items-center justify-center">
+          절약한 종이 무게: 약 <span id="total-weight" class="font-extrabold text-white mx-1">164.25 kg</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. 실시간 절약 효과 결과 대시보드 -->
+    <section aria-labelledby="results-heading" class="space-y-4">
+      <div>
+        <span class="text-xs font-bold uppercase tracking-wider text-emerald-600">STEP 03 · 시뮬레이션 결과</span>
+        <h2 id="results-heading" class="text-lg sm:text-xl font-bold text-slate-800 mt-0.5">
+          📊 실시간 에너지·환경 절약 효과 대시보드
+        </h2>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <!-- 결과 카드 1: 총 절약 에너지 -->
+        <div class="bg-white rounded-3xl p-6 shadow-sm border border-amber-200/80 hover:shadow-md transition">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <span class="inline-flex items-center gap-1.5 text-xs font-bold text-amber-800 bg-amber-100 px-3 py-1 rounded-full">
+                <span>⚡</span>
+                <span>총 절약 에너지</span>
+              </span>
+              <div class="mt-3 flex items-baseline gap-2 flex-wrap">
+                <span id="res-kwh" class="text-3xl sm:text-4xl font-extrabold text-slate-900">919.80</span>
+                <span class="text-lg font-bold text-amber-700">kWh</span>
+              </div>
+              <div class="text-xs sm:text-sm font-semibold text-slate-500 mt-1">
+                (<span id="res-wh">919,800</span> Wh / <span id="res-mj">3,311.28</span> MJ)
+              </div>
+            </div>
+            <div class="w-12 h-12 rounded-2xl bg-amber-100/80 flex items-center justify-center text-2xl shrink-0">
+              🔋
+            </div>
+          </div>
+
+          <div class="mt-4 pt-4 border-t border-slate-100 grid grid-cols-2 gap-3">
+            <div class="rounded-xl bg-amber-50/70 p-3">
+              <div class="text-[11px] font-semibold text-slate-500">스마트폰 완충 환산</div>
+              <div class="text-sm sm:text-base font-extrabold text-amber-900 mt-0.5">
+                약 <span id="res-phones">65,700</span> 회
+              </div>
+            </div>
+            <div class="rounded-xl bg-amber-50/70 p-3">
+              <div class="text-[11px] font-semibold text-slate-500">10W LED 전구 사용</div>
+              <div class="text-sm sm:text-base font-extrabold text-amber-900 mt-0.5">
+                <span id="res-led">91,980</span> 시간
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 결과 카드 2: 이산화탄소 감축량 -->
+        <div class="bg-white rounded-3xl p-6 shadow-sm border border-sky-200/80 hover:shadow-md transition">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <span class="inline-flex items-center gap-1.5 text-xs font-bold text-sky-800 bg-sky-100 px-3 py-1 rounded-full">
+                <span>🌍</span>
+                <span>이산화탄소(CO₂) 감축량</span>
+              </span>
+              <div class="mt-3 flex items-baseline gap-2 flex-wrap">
+                <span id="res-co2-kg" class="text-3xl sm:text-4xl font-extrabold text-slate-900">94.61</span>
+                <span class="text-lg font-bold text-sky-700">kg</span>
+                <span id="res-co2-ton-wrap" class="hidden text-sm font-bold text-sky-600">
+                  (<span id="res-co2-ton">0.09</span> 톤)
+                </span>
+              </div>
+              <div class="text-xs sm:text-sm font-semibold text-slate-500 mt-1">
+                (<span id="res-co2-g">94,608</span> g CO₂ 감축)
+              </div>
+            </div>
+            <div class="w-12 h-12 rounded-2xl bg-sky-100/80 flex items-center justify-center text-2xl shrink-0">
+              ☁️
+            </div>
+          </div>
+
+          <div class="mt-4 pt-4 border-t border-slate-100">
+            <div class="rounded-xl bg-sky-50/70 p-3 flex items-center justify-between">
+              <div>
+                <div class="text-[11px] font-semibold text-slate-500">승용차 주행 거리 감축 효과 (1km당 162g 기준)</div>
+                <div class="text-sm sm:text-base font-extrabold text-sky-900 mt-0.5">
+                  승용차 약 <span id="res-car-km">584.0</span> km 주행 중단 효과
+                </div>
+              </div>
+              <span class="text-xl" aria-hidden="true">🚗</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 결과 카드 3: 소나무 심기 효과 -->
+        <div class="bg-white rounded-3xl p-6 shadow-sm border border-emerald-200/90 hover:shadow-md transition">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <span class="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full">
+                <span>🌲</span>
+                <span>소나무 심기 효과</span>
+              </span>
+              <div class="mt-3 flex items-baseline gap-2 flex-wrap">
+                <span id="res-pine-co2" class="text-3xl sm:text-4xl font-extrabold text-emerald-700">14.33</span>
+                <span class="text-lg font-bold text-emerald-800">그루</span>
+              </div>
+              <div class="text-xs sm:text-sm font-semibold text-slate-500 mt-1">
+                30년생 소나무 연간 CO₂ 흡수량(6.6kg/그루) 기준
+              </div>
+            </div>
+            <div class="w-12 h-12 rounded-2xl bg-emerald-100/80 flex items-center justify-center text-2xl shrink-0">
+              🌳
+            </div>
+          </div>
+
+          <div class="mt-4 pt-4 border-t border-slate-100">
+            <div class="rounded-xl bg-emerald-50/80 p-3 flex items-center justify-between">
+              <div>
+                <div class="text-[11px] font-semibold text-slate-500">제지용 원목 벌목 직접 보호 효과 (10,000장당 1그루)</div>
+                <div class="text-sm sm:text-base font-extrabold text-emerald-900 mt-0.5">
+                  30년생 원목 약 <span id="res-pine-wood">3.29</span> 그루 벌목 보호
+                </div>
+              </div>
+              <span class="text-xl" aria-hidden="true">🪵</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 결과 카드 4: 물 절약량 -->
+        <div class="bg-white rounded-3xl p-6 shadow-sm border border-cyan-200/80 hover:shadow-md transition">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <span class="inline-flex items-center gap-1.5 text-xs font-bold text-cyan-800 bg-cyan-100 px-3 py-1 rounded-full">
+                <span>💧</span>
+                <span>물 절약량</span>
+              </span>
+              <div class="mt-3 flex items-baseline gap-2 flex-wrap">
+                <span id="res-water-l" class="text-3xl sm:text-4xl font-extrabold text-slate-900">328,500</span>
+                <span class="text-lg font-bold text-cyan-700">L</span>
+              </div>
+              <div class="text-xs sm:text-sm font-semibold text-slate-500 mt-1">
+                (약 <span id="res-water-ton">328.50</span> 톤의 수자원 보존)
+              </div>
+            </div>
+            <div class="w-12 h-12 rounded-2xl bg-cyan-100/80 flex items-center justify-center text-2xl shrink-0">
+              🚰
+            </div>
+          </div>
+
+          <div class="mt-4 pt-4 border-t border-slate-100">
+            <div class="rounded-xl bg-cyan-50/70 p-3 flex items-center justify-between">
+              <div>
+                <div class="text-[11px] font-semibold text-slate-500">500mL 생수병 환산 (A4 1장 = 20병)</div>
+                <div class="text-sm sm:text-base font-extrabold text-cyan-900 mt-0.5">
+                  500mL 생수 <span id="res-bottles">657,000</span> 병 절약
+                </div>
+              </div>
+              <span class="text-xl" aria-hidden="true">🧴</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3-1. [추가 기능 1] 실시간 수학 일차함수 그래프 (y = 28x, y = 2.88x) -->
+    <section aria-labelledby="math-graph-heading" class="bg-white rounded-3xl p-5 sm:p-7 shadow-sm border border-emerald-100">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-5">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-emerald-600">MATH &amp; SCIENCE GRAPH · 정비례 일차함수</span>
+          <h2 id="math-graph-heading" class="text-lg sm:text-xl font-bold text-slate-800 mt-0.5">
+            📐 종이 절약량(x)에 따른 에너지·CO₂ 감축 일차함수 그래프
+          </h2>
+          <p class="text-xs sm:text-sm text-slate-500 mt-1">
+            절약한 종이 장수(<strong class="text-slate-700">x</strong>)가 늘어날수록 절약 에너지(<strong class="text-amber-700">y = 28x</strong>)와 이산화탄소 감축량(<strong class="text-sky-700">y = 2.88x</strong>)이 정비례하여 증가합니다.
+          </p>
+        </div>
+
+        <!-- 그래프 표시 모드 전환 버튼 -->
+        <div class="inline-flex p-1 rounded-2xl bg-slate-100 border border-slate-200 self-start md:self-center" role="group" aria-label="함수 그래프 보기 모드">
+          <button
+            type="button"
+            data-graph-mode="both"
+            class="graph-mode-btn px-3 py-1.5 rounded-xl text-xs font-bold transition"
+          >
+            전체 비교
+          </button>
+          <button
+            type="button"
+            data-graph-mode="energy"
+            class="graph-mode-btn px-3 py-1.5 rounded-xl text-xs font-bold transition"
+          >
+            ⚡ 에너지 (y=28x)
+          </button>
+          <button
+            type="button"
+            data-graph-mode="co2"
+            class="graph-mode-btn px-3 py-1.5 rounded-xl text-xs font-bold transition"
+          >
+            🌍 CO₂ (y=2.88x)
+          </button>
+        </div>
+      </div>
+
+      <!-- 함수식 공식 카드 2개 -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 mb-5">
+        <div class="rounded-2xl bg-amber-50/70 border border-amber-200/80 px-4 py-3 flex items-center justify-between gap-3">
+          <div>
+            <div class="text-xs font-bold text-amber-800">전력 에너지 절감 함수식 (단위: Wh)</div>
+            <div class="text-base sm:text-lg font-extrabold text-slate-900 mt-0.5 font-mono">
+              f(x) = 28x
+            </div>
+          </div>
+          <div class="text-right">
+            <div class="text-[11px] font-semibold text-slate-500">현재 좌표 (x, y)</div>
+            <div id="graph-coord-energy" class="text-xs sm:text-sm font-extrabold text-amber-800">
+              (32,850, 919,800)
+            </div>
+          </div>
+        </div>
+
+        <div class="rounded-2xl bg-sky-50/70 border border-sky-200/80 px-4 py-3 flex items-center justify-between gap-3">
+          <div>
+            <div class="text-xs font-bold text-sky-800">이산화탄소 감축 함수식 (단위: g)</div>
+            <div class="text-base sm:text-lg font-extrabold text-slate-900 mt-0.5 font-mono">
+              g(x) = 2.88x
+            </div>
+          </div>
+          <div class="text-right">
+            <div class="text-[11px] font-semibold text-slate-500">현재 좌표 (x, y)</div>
+            <div id="graph-coord-co2" class="text-xs sm:text-sm font-extrabold text-sky-800">
+              (32,850, 94,608)
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 반응형 함수 그래프 캔버스 컨테이너 -->
+      <div class="relative rounded-2xl bg-slate-50/90 border border-slate-200 p-3 sm:p-4">
+        <div id="function-graph-container" class="w-full h-72 sm:h-80">
+          <canvas id="function-graph-canvas" class="w-full h-full block"></canvas>
+        </div>
+        <div class="mt-2.5 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 px-1">
+          <div class="flex flex-wrap items-center gap-4">
+            <span class="inline-flex items-center gap-1.5 font-semibold text-amber-800">
+              <span class="w-3 h-1 rounded-full bg-amber-500 inline-block"></span>
+              <span>에너지 직선 y = 28x (Wh)</span>
+            </span>
+            <span class="inline-flex items-center gap-1.5 font-semibold text-sky-700">
+              <span class="w-3 h-1 rounded-full bg-sky-500 inline-block"></span>
+              <span>CO₂ 직선 y = 2.88x (g)</span>
+            </span>
+          </div>
+          <span class="text-[11px] font-medium text-slate-400">
+            * 슬라이더를 움직이면 그래프 위의 현재 지점(●)과 점선이 실시간으로 이동합니다.
+          </span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. 시각적 소나무 숲 & 혼자 vs 여러 명 비교 차트 섹션 -->
+    <section aria-labelledby="visual-heading" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- 왼쪽: 가상 소나무 숲 시뮬레이션 -->
+      <div class="bg-white rounded-3xl p-6 shadow-sm border border-emerald-100 flex flex-col justify-between">
+        <div>
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <div>
+              <span class="text-xs font-bold uppercase tracking-wider text-emerald-600">VISUAL FOREST</span>
+              <h3 id="visual-heading" class="text-lg font-bold text-slate-800">
+                🌲 우리가 함께 가꾼 가상 소나무 숲
+              </h3>
+            </div>
+            <span id="forest-badge" class="px-3 py-1 rounded-full bg-emerald-600 text-white text-xs font-extrabold shadow-sm">
+              소나무 14.33그루 효과
+            </span>
+          </div>
+          <p class="text-xs sm:text-sm text-slate-500 mb-4 leading-relaxed">
+            CO₂ 감축량에 비례하여 30년생 소나무가 숲에 심어집니다. (최대 100그루까지 시각적으로 표시되며, 1그루 미만일 때는 새싹 🌱이 자라납니다.)
+          </p>
+
+          <!-- 소나무 숲 렌더링 컨테이너 -->
+          <div
+            id="pine-forest-box"
+            class="min-h-[190px] rounded-2xl bg-gradient-to-b from-sky-50 via-emerald-50/70 to-emerald-100/90 border border-emerald-200/80 p-4 flex flex-wrap content-start gap-1.5 overflow-hidden"
+            aria-live="polite"
+          >
+            <!-- JavaScript로 소나무 아이콘이 동적 생성됩니다 -->
+          </div>
+        </div>
+
+        <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+          <span>🌲 30년생 소나무 1그루 = 연 6.6kg CO₂ 흡수</span>
+          <span id="forest-count-note" class="font-bold text-emerald-700">14그루 표시 중</span>
+        </div>
+      </div>
+
+      <!-- 오른쪽: 1명 절약 vs 여러 명 절약 비교 차트 -->
+      <div class="bg-white rounded-3xl p-6 shadow-sm border border-emerald-100 flex flex-col justify-between">
+        <div>
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <div>
+              <span class="text-xs font-bold uppercase tracking-wider text-emerald-600">TOGETHER IMPACT</span>
+              <h3 class="text-lg font-bold text-slate-800">
+                📈 혼자 절약할 때 vs 여러 명이 함께할 때
+              </h3>
+            </div>
+            <span id="multiplier-badge" class="px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-extrabold">
+              함께하면 효과 30배!
+            </span>
+          </div>
+          <p class="text-xs sm:text-sm text-slate-500 mb-5 leading-relaxed">
+            같은 기간 동안 <strong>1명만</strong> 실천했을 때와 현재 설정한 <strong id="compare-people-label">30명</strong>이 함께 실천했을 때의 절감 규모를 비교합니다.
+          </p>
+
+          <div class="space-y-6">
+            <!-- 비교 항목 1: 절약 에너지 (kWh) -->
+            <div class="rounded-2xl bg-slate-50 p-4 border border-slate-200/70">
+              <div class="text-xs font-bold text-slate-700 mb-3 flex items-center gap-1.5">
+                <span>⚡</span>
+                <span>절약 에너지 비교 (kWh)</span>
+              </div>
+
+              <!-- 1명 기준 바 -->
+              <div class="mb-3">
+                <div class="flex justify-between text-xs mb-1">
+                  <span class="font-semibold text-slate-500">나 혼자 (1명)</span>
+                  <span id="bar-energy-single-val" class="font-bold text-slate-700">30.66 kWh</span>
+                </div>
+                <div class="w-full h-3.5 bg-slate-200 rounded-full overflow-hidden">
+                  <div
+                    id="bar-energy-single"
+                    class="h-full bg-amber-400 rounded-full transition-all duration-500"
+                    style="width: 3.33%"
+                  ></div>
+                </div>
+              </div>
+
+              <!-- 여러 명 기준 바 -->
+              <div>
+                <div class="flex justify-between text-xs mb-1">
+                  <span id="bar-energy-group-label" class="font-bold text-amber-800">우리 함께 (30명)</span>
+                  <span id="bar-energy-group-val" class="font-extrabold text-amber-800">919.80 kWh</span>
+                </div>
+                <div class="w-full h-3.5 bg-amber-100 rounded-full overflow-hidden">
+                  <div
+                    id="bar-energy-group"
+                    class="h-full bg-amber-500 rounded-full transition-all duration-500"
+                    style="width: 100%"
+                  ></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 비교 항목 2: 이산화탄소 감축량 (kg) -->
+            <div class="rounded-2xl bg-slate-50 p-4 border border-slate-200/70">
+              <div class="text-xs font-bold text-slate-700 mb-3 flex items-center gap-1.5">
+                <span>🌍</span>
+                <span>이산화탄소(CO₂) 감축량 비교 (kg)</span>
+              </div>
+
+              <!-- 1명 기준 바 -->
+              <div class="mb-3">
+                <div class="flex justify-between text-xs mb-1">
+                  <span class="font-semibold text-slate-500">나 혼자 (1명)</span>
+                  <span id="bar-co2-single-val" class="font-bold text-slate-700">3.15 kg</span>
+                </div>
+                <div class="w-full h-3.5 bg-slate-200 rounded-full overflow-hidden">
+                  <div
+                    id="bar-co2-single"
+                    class="h-full bg-emerald-400 rounded-full transition-all duration-500"
+                    style="width: 3.33%"
+                  ></div>
+                </div>
+              </div>
+
+              <!-- 여러 명 기준 바 -->
+              <div>
+                <div class="flex justify-between text-xs mb-1">
+                  <span id="bar-co2-group-label" class="font-bold text-emerald-800">우리 함께 (30명)</span>
+                  <span id="bar-co2-group-val" class="font-extrabold text-emerald-800">94.61 kg</span>
+                </div>
+                <div class="w-full h-3.5 bg-emerald-100 rounded-full overflow-hidden">
+                  <div
+                    id="bar-co2-group"
+                    class="h-full bg-emerald-600 rounded-full transition-all duration-500"
+                    style="width: 100%"
+                  ></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. 종이 절약의 여러 가지 좋은 점 (4-Card Informational Grid) -->
+    <section aria-labelledby="benefits-heading" class="bg-white rounded-3xl p-5 sm:p-7 shadow-sm border border-emerald-100">
+      <div class="mb-6">
+        <span class="text-xs font-bold uppercase tracking-wider text-emerald-600">WHY SAVE PAPER?</span>
+        <h2 id="benefits-heading" class="text-lg sm:text-xl font-bold text-slate-800 mt-0.5">
+          🌿 종이를 절약하면 우리 지구에 어떤 좋은 점이 있을까요?
+        </h2>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- 장점 1 -->
+        <article class="rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-50/60 border border-emerald-200/70 p-5">
+          <div class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-lg font-bold mb-3 shadow-sm">
+            1
+          </div>
+          <h3 class="text-base font-bold text-slate-800 mb-2">
+            지구 온난화 방지 및 탄소 중립 기여
+          </h3>
+          <p class="text-xs sm:text-sm text-slate-600 leading-relaxed">
+            종이 생산과 폐기 과정에서 발생하는 온실가스를 줄이고, 탄소를 흡수하는 숲을 지켜 기후 위기 대응과 탄소 중립 실현에 직접 기여합니다.
+          </p>
+        </article>
+
+        <!-- 장점 2 -->
+        <article class="rounded-2xl bg-gradient-to-br from-green-50 to-lime-50/60 border border-green-200/70 p-5">
+          <div class="w-10 h-10 rounded-xl bg-green-600 text-white flex items-center justify-center text-lg font-bold mb-3 shadow-sm">
+            2
+          </div>
+          <h3 class="text-base font-bold text-slate-800 mb-2">
+            산림 생태계 보전 및 야생동물 서식지 보호
+          </h3>
+          <p class="text-xs sm:text-sm text-slate-600 leading-relaxed">
+            무분별한 원목 벌목을 막아 울창한 산림을 보존하고, 숲에 살아가는 다양한 동식물의 서식지와 생물 다양성을 안전하게 지킬 수 있습니다.
+          </p>
+        </article>
+
+        <!-- 장점 3 -->
+        <article class="rounded-2xl bg-gradient-to-br from-cyan-50 to-sky-50/60 border border-cyan-200/70 p-5">
+          <div class="w-10 h-10 rounded-xl bg-cyan-600 text-white flex items-center justify-center text-lg font-bold mb-3 shadow-sm">
+            3
+          </div>
+          <h3 class="text-base font-bold text-slate-800 mb-2">
+            수자원 절약 및 제지 표백 폐수 감소
+          </h3>
+          <p class="text-xs sm:text-sm text-slate-600 leading-relaxed">
+            펄프를 씻고 종이를 하얗게 표백하는 과정에서 쓰이는 막대한 물과 화학 약품 사용량을 줄여 하천과 해양의 수질 오염을 예방합니다.
+          </p>
+        </article>
+
+        <!-- 장점 4 -->
+        <article class="rounded-2xl bg-gradient-to-br from-amber-50 to-yellow-50/60 border border-amber-200/70 p-5">
+          <div class="w-10 h-10 rounded-xl bg-amber-600 text-white flex items-center justify-center text-lg font-bold mb-3 shadow-sm">
+            4
+          </div>
+          <h3 class="text-base font-bold text-slate-800 mb-2">
+            산업 전력 에너지 절감 및 쓰레기 비용 감소
+          </h3>
+          <p class="text-xs sm:text-sm text-slate-600 leading-relaxed">
+            제지 공장의 막대한 전력·화석연료 소비를 줄일 뿐만 아니라, 버려지는 종이 쓰레기 소각·매립 비용과 재활용 처리 부담까지 함께 낮춰줍니다.
+          </p>
+        </article>
+      </div>
+    </section>
+
+    <!-- ========================================================================= -->
+    <!-- 6. [업그레이드] 교실 이면지 분류 챌린지 (실물 종이 양면 판별 게임)          -->
+    <!-- ========================================================================= -->
+    <section aria-labelledby="scrap-sim-heading" class="bg-white rounded-3xl p-5 sm:p-8 shadow-md border-2 border-emerald-200/90">
+      <!-- 상단 타이틀 & 사운드/점수 상태바 -->
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-5 border-b border-emerald-100">
+        <div>
+          <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-extrabold mb-2">
+            <span>🎮</span>
+            <span>실전 미니게임 · 우리 반 교실 이면지함</span>
+          </div>
+          <h2 id="scrap-sim-heading" class="text-xl sm:text-2xl font-extrabold text-slate-800">
+            ♻️ 교실 이면지 분류 챌린지 (실물 종이 판별 게임)
+          </h2>
+          <p class="text-xs sm:text-sm text-slate-600 mt-1">
+            책상 위에 놓인 실제 종이 8장을 직접 클릭하거나 뒤집어 <strong>앞면과 뒷면에 적힌 내용·재질·오염 상태</strong>를 확인하고 이면지 사용 여부를 판별하세요!
+          </p>
+        </div>
+
+        <!-- 점수 & 사운드 컨트롤 -->
+        <div class="flex flex-wrap items-center gap-2.5 self-start lg:self-center shrink-0">
+          <button
+            id="btn-toggle-sound"
+            type="button"
+            class="px-3.5 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-extrabold border border-slate-200 transition flex items-center gap-1.5"
+            title="효과음 켜기/끄기"
+          >
+            <span id="sound-icon">🔊</span>
+            <span id="sound-label">효과음 ON</span>
+          </button>
+
+          <div id="scrap-hud-badges" class="hidden items-center gap-2.5">
+            <div class="px-3.5 py-2 rounded-2xl bg-slate-50 border border-slate-200 text-center min-w-[84px]">
+              <div class="text-[10px] font-bold text-slate-500">남은 종이</div>
+              <div class="text-sm sm:text-base font-extrabold text-slate-800">
+                <span id="scrap-progress-text">1</span> / 8장
+              </div>
+            </div>
+
+            <div class="px-4 py-2 rounded-2xl bg-emerald-50 border border-emerald-200 text-center min-w-[105px]">
+              <div class="text-[10px] font-bold text-emerald-700">환경 점수</div>
+              <div class="text-base sm:text-lg font-extrabold text-emerald-800">
+                <span id="scrap-score-text">0</span>점
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- [화면 1] 게임 시작 대기실 (Lobby) -->
+      <div id="scrap-start-lobby" class="mt-6 rounded-3xl wood-desk-bg p-6 sm:p-10 shadow-inner border border-amber-900/20 relative overflow-hidden">
+        <div class="max-w-2xl mx-auto bg-white/95 backdrop-blur-sm rounded-3xl p-6 sm:p-8 shadow-xl border border-amber-200 text-center">
+          <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-emerald-100 text-3xl mb-4 shadow-sm">
+            📄🔄♻️
+          </div>
+          <h3 class="text-xl sm:text-2xl font-extrabold text-slate-900">
+            우리 반 이면지함 지킴이에 도전하세요!
+          </h3>
+          <p class="text-xs sm:text-sm text-slate-600 mt-2 leading-relaxed">
+            교실 책상 위에 수학 시험지, 가정통신문, 유광 코팅 전단지, 개인정보 확인서 등
+            <strong>총 8장의 실제 종이</strong>가 놓여 있습니다.<br class="hidden sm:inline" />
+            종이를 직접 뒤집어 앞·뒷면을 모두 확인한 뒤 이면지함에 넣을지 분리배출할지 결정하세요!
+          </p>
+
+          <!-- 게임 규칙 요약 카드 3개 -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 my-6 text-left">
+            <div class="rounded-2xl bg-amber-50 border border-amber-200 p-3.5">
+              <div class="text-xs font-extrabold text-amber-800 mb-1">1️⃣ 양면 꼼꼼 확인</div>
+              <p class="text-[11px] sm:text-xs text-slate-600 leading-relaxed">
+                앞면만 보고 판단하면 함정에 빠집니다! 반드시 <strong>종이를 뒤집어 뒷면</strong>까지 확인하세요.
+              </p>
+            </div>
+            <div class="rounded-2xl bg-emerald-50 border border-emerald-200 p-3.5">
+              <div class="text-xs font-extrabold text-emerald-800 mb-1">2️⃣ 점수 획득 &amp; 감점</div>
+              <p class="text-[11px] sm:text-xs text-slate-600 leading-relaxed">
+                올바른 분류 시 <strong class="text-emerald-700">+15점</strong> 획득!<br />
+                잘못된 분류 시 <strong class="text-rose-600">-10점</strong> 감점!
+              </p>
+            </div>
+            <div class="rounded-2xl bg-sky-50 border border-sky-200 p-3.5">
+              <div class="text-xs font-extrabold text-sky-800 mb-1">3️⃣ 미션 통과 기준</div>
+              <p class="text-[11px] sm:text-xs text-slate-600 leading-relaxed">
+                8장 분류 완료 후 <strong>80점 이상</strong>(최대 120점)을 달성하면 이면지 마스터 인증!
+              </p>
+            </div>
+          </div>
+
+          <button
+            id="btn-start-scrap-game"
+            type="button"
+            class="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 active:scale-95 text-white text-base sm:text-lg font-extrabold shadow-lg shadow-emerald-600/30 transition inline-flex items-center justify-center gap-2.5"
+          >
+            <span>🎮</span>
+            <span>게임 시작하기</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- [화면 2] 실제 게임 플레이 영역 -->
+      <div id="scrap-play-area" class="hidden mt-5">
+        <!-- 진행률 바 -->
+        <div class="mb-5">
+          <div class="flex justify-between text-xs font-semibold text-slate-500 mb-1.5">
+            <span>교실 종이 검사 진행률</span>
+            <span>통과 목표: <strong class="text-emerald-700">80점 이상</strong> (최대 120점)</span>
+          </div>
+          <div class="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+            <div id="scrap-progress-bar" class="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-300" style="width: 12.5%"></div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+          <!-- 왼쪽(7칸): 교실 나무 책상 위 실물 A4 종이 검사대 -->
+          <div class="lg:col-span-7 rounded-3xl wood-desk-bg p-4 sm:p-6 shadow-inner border border-amber-900/20 flex flex-col justify-between">
+            <!-- 상단 책상 상태 표시줄 -->
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+              <span id="scrap-side-indicator" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-950/80 text-amber-100 text-xs font-extrabold shadow-sm">
+                📄 현재 보는 면: 앞면 (FRONT)
+              </span>
+              <span id="scrap-flip-check" class="px-3 py-1 rounded-full bg-white/90 text-slate-700 text-xs font-bold shadow-sm">
+                👆 종이를 클릭하거나 아래 버튼으로 뒤집으세요!
+              </span>
+            </div>
+
+            <!-- 3D 실물 A4 종이 시트 -->
+            <div class="paper-scene w-full h-[340px] sm:h-[370px] my-1">
+              <div id="paper-card-inner" class="paper-card-inner" title="클릭하면 종이 앞면/뒷면이 뒤집힙니다">
+                <!-- 앞면 (FRONT) -->
+                <div id="paper-front-face" class="paper-face real-paper-sheet border border-slate-300 p-4 sm:p-6 flex flex-col justify-between overflow-hidden">
+                  <div id="card-front-sheet-body" class="h-full flex flex-col justify-between">
+                    <!-- JS로 실제 A4 문서 앞면 그래픽 렌더링 -->
+                  </div>
+                  <!-- 유광 코팅 시트일 때만 활성화되는 반사광 레이어 -->
+                  <div id="front-glossy-overlay" class="hidden absolute inset-0 glossy-sheen"></div>
+                </div>
+
+                <!-- 뒷면 (BACK) -->
+                <div id="paper-back-face" class="paper-face paper-back real-paper-sheet border border-slate-300 p-4 sm:p-6 flex flex-col justify-between overflow-hidden">
+                  <div id="card-back-sheet-body" class="h-full flex flex-col justify-between">
+                    <!-- JS로 실제 A4 문서 뒷면 그래픽 렌더링 -->
+                  </div>
+                  <!-- 유광 코팅 시트일 때만 활성화되는 반사광 레이어 -->
+                  <div id="back-glossy-overlay" class="hidden absolute inset-0 glossy-sheen"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 종이 뒤집기 버튼 바 -->
+            <div class="mt-4 flex items-center gap-3">
+              <button
+                id="btn-flip-paper"
+                type="button"
+                class="w-full py-3.5 px-5 rounded-2xl bg-slate-900 hover:bg-slate-800 active:scale-[0.99] text-white text-xs sm:text-sm font-extrabold shadow-md transition flex items-center justify-center gap-2"
+              >
+                <span class="text-base">🔄</span>
+                <span id="btn-flip-label">종이 뒤집기 (뒷면 확인하기)</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 오른쪽(5칸): 분류 선택 버튼 & 채점 도장 피드백 -->
+          <div class="lg:col-span-5 flex flex-col justify-between rounded-3xl bg-slate-50 border border-slate-200/90 p-5 relative overflow-hidden">
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-2">
+                  <span class="text-lg">🧐</span>
+                  <h3 class="text-base font-extrabold text-slate-800">이 종이를 어디에 넣을까요?</h3>
+                </div>
+                <span id="paper-number-pill" class="px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-700 text-xs font-extrabold">
+                  1 / 8번째 종이
+                </span>
+              </div>
+              <p class="text-xs text-slate-500 leading-relaxed mb-4">
+                실물 종이의 <strong>앞면과 뒷면 내용, 코팅 여부, 오염, 개인정보</strong>를 모두 확인한 뒤 알맞은 보관함을 선택하세요.
+              </p>
+
+              <!-- 선택 버튼 2개 -->
+              <div class="space-y-3">
+                <button
+                  id="btn-judge-usable"
+                  type="button"
+                  class="w-full p-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white text-left transition shadow-sm flex items-center justify-between gap-3 disabled:opacity-45 disabled:cursor-not-allowed"
+                >
+                  <div>
+                    <div class="text-sm sm:text-base font-extrabold">📥 이면지함에 넣기 (사용 가능)</div>
+                    <div class="text-xs text-emerald-100 mt-0.5">뒷면이 깨끗하고 안전하게 다시 쓸 수 있는 종이</div>
+                  </div>
+                  <span class="text-2xl shrink-0">♻️</span>
+                </button>
+
+                <button
+                  id="btn-judge-unusable"
+                  type="button"
+                  class="w-full p-4 rounded-2xl bg-rose-600 hover:bg-rose-700 active:scale-[0.99] text-white text-left transition shadow-sm flex items-center justify-between gap-3 disabled:opacity-45 disabled:cursor-not-allowed"
+                >
+                  <div>
+                    <div class="text-sm sm:text-base font-extrabold">🗑️ 일반/폐기함으로 분리 (사용 불가)</div>
+                    <div class="text-xs text-rose-100 mt-0.5">양면 인쇄, 코팅·오염, 개인정보 서류 등</div>
+                  </div>
+                  <span class="text-2xl shrink-0">🚫</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- 실시간 판정 피드백 박스 -->
+            <div id="scrap-feedback-box" class="mt-5 rounded-2xl p-4 border bg-white border-slate-200 transition-all relative">
+              <!-- 채점 도장 배지 -->
+              <div id="scrap-stamp-badge" class="hidden stamp-badge absolute -top-3 right-3 px-3 py-1 rounded-lg border-2 font-black text-xs tracking-wider shadow-sm">
+                정답 +15점
+              </div>
+
+              <div id="scrap-feedback-title" class="text-xs sm:text-sm font-extrabold text-slate-700 mb-1 pr-16">
+                👈 책상 위 종이를 뒤집어 양면을 확인하세요!
+              </div>
+              <p id="scrap-feedback-desc" class="text-xs text-slate-500 leading-relaxed">
+                앞면만 보고 판단하면 틀릴 수 있습니다. 종이를 클릭해 뒷면 상태까지 꼭 확인해 보세요.
+              </p>
+              <button
+                id="btn-next-paper"
+                type="button"
+                class="hidden mt-3.5 w-full py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs sm:text-sm font-extrabold transition shadow-sm"
+              >
+                다음 종이 확인하기 →
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- [화면 3] 최종 결과 화면 (8장 완료 시 표시) -->
+      <div id="scrap-result-area" class="hidden mt-6 rounded-3xl p-6 sm:p-8 text-center border-2 transition-all">
+        <div id="scrap-result-emoji" class="text-5xl mb-3">🏆</div>
+        <div id="scrap-result-badge" class="inline-block px-4 py-1 rounded-full text-xs font-extrabold mb-2">
+          미션 결과
+        </div>
+        <h3 id="scrap-result-heading" class="text-2xl sm:text-3xl font-extrabold text-slate-900 mb-2">
+          축하합니다! 이면지 마스터 미션 통과!
+        </h3>
+        <p id="scrap-result-message" class="text-sm sm:text-base text-slate-600 max-w-xl mx-auto mb-6 leading-relaxed">
+          총 8장의 실제 종이를 정확하게 판별하여 교실 이면지함을 깨끗하게 지켰습니다.
+        </p>
+
+        <!-- 상세 성적 요약 -->
+        <div class="grid grid-cols-3 gap-3 max-w-md mx-auto mb-6">
+          <div class="rounded-2xl bg-white p-3.5 border border-slate-200 shadow-sm">
+            <div class="text-[11px] font-bold text-slate-500">최종 환경 점수</div>
+            <div id="final-scrap-score" class="text-xl sm:text-2xl font-extrabold text-emerald-700 mt-0.5">105점</div>
+          </div>
+          <div class="rounded-2xl bg-white p-3.5 border border-slate-200 shadow-sm">
+            <div class="text-[11px] font-bold text-slate-500">정답 / 오답</div>
+            <div id="final-scrap-correct" class="text-xl sm:text-2xl font-extrabold text-slate-800 mt-0.5">7 / 1</div>
+          </div>
+          <div class="rounded-2xl bg-white p-3.5 border border-slate-200 shadow-sm">
+            <div class="text-[11px] font-bold text-slate-500">통과 기준</div>
+            <div class="text-xl sm:text-2xl font-extrabold text-amber-700 mt-0.5">80점</div>
+          </div>
+        </div>
+
+        <button
+          id="btn-restart-scrap"
+          type="button"
+          class="px-7 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-sm sm:text-base font-extrabold shadow-md transition inline-flex items-center gap-2"
+        >
+          <span>🔄</span>
+          <span>다시 도전하기</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- 7. 여백 공간 제작자 표기 영역 -->
+    <section aria-label="제작자 정보 여백 공간" class="py-10 sm:py-14 px-6 bg-white/80 rounded-3xl border border-dashed border-emerald-200 flex flex-col items-center justify-center text-center">
+      <p class="text-xl sm:text-2xl font-extrabold tracking-wide text-slate-800">
+        능허대중학교20927유이준
+      </p>
+      <p class="text-xs sm:text-sm font-semibold text-slate-500 mt-1">
+        20927유이준 · 종이 절약 환경·에너지 효과 및 이면지 분류 챌린지 시뮬레이터
+      </p>
+    </section>
+
+  </main>
+
+  <!-- 하단 푸터 영역 -->
+  <footer class="bg-white border-t border-emerald-100 mt-8">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs sm:text-sm text-slate-500">
+      <div>
+        종이 절약 환경·에너지 효과 시뮬레이터 · 작은 실천이 모여 큰 숲을 만듭니다.
+      </div>
+      <div class="font-bold text-slate-700 tracking-wide">
+        능허대중학교20927유이준
+      </div>
+    </div>
+  </footer>
+
+  <!-- 시뮬레이션 계산, 일차함수 그래프, 이면지 분류 게임 스크립트 -->
+  <script>
+    (function () {
+      'use strict';
+
+      // ==========================================
+      // 1. 환경·에너지 계산 상수 정의 (A4 1장 기준)
+      // ==========================================
+      const CONSTANTS = {
+        PAPER_WEIGHT_G: 5,            // A4 1장 무게: 약 5g
+        ENERGY_WH_PER_SHEET: 28,      // A4 1장당 소비 에너지: 28 Wh
+        ENERGY_KWH_PER_SHEET: 0.028,  // A4 1장당 소비 에너지: 0.028 kWh
+        ENERGY_KJ_PER_SHEET: 100.8,   // A4 1장당 소비 에너지: 100.8 kJ
+        PHONE_CHARGES_PER_SHEET: 2,   // 스마트폰 충전 횟수 환산 (28Wh / 14Wh = 2회)
+        LED_10W_HOURS_PER_SHEET: 2.8, // 10W LED 전구 사용 시간 (28Wh / 10W = 2.8시간)
+        CO2_G_PER_SHEET: 2.88,        // A4 1장당 이산화탄소 배출량: 2.88 g
+        CAR_CO2_G_PER_KM: 162,        // 승용차 1km 주행당 평균 CO2 배출량: 162 g
+        PINE_CO2_KG_PER_YEAR: 6.6,    // 30년생 소나무 1그루 연간 CO2 흡수량: 6.6 kg
+        SHEETS_PER_LOG_TREE: 10000,   // 30년생 원목 1그루당 A4 생산량: 10,000장
+        WATER_L_PER_SHEET: 10,        // A4 1장당 물 소비량: 10 L
+        BOTTLES_500ML_PER_SHEET: 20   // 500mL 생수병 환산: 20병
+      };
+
+      // ==========================================
+      // 2. 메인 시뮬레이션 상태 변수
+      // ==========================================
+      const state = {
+        people: 30,
+        sheetsPerDay: 3,
+        days: 365,
+        graphMode: 'both' // 'both' | 'energy' | 'co2'
+      };
+
+      let lastRenderedTreeKey = '';
+
+      // ==========================================
+      // 3. 숫자 포맷팅 유틸리티 함수
+      // ==========================================
+      function formatInt(num) {
+        return Math.round(num).toLocaleString('ko-KR');
+      }
+
+      function formatDecimal(num, digits) {
+        return Number(num).toLocaleString('ko-KR', {
+          minimumFractionDigits: digits,
+          maximumFractionDigits: digits
+        });
+      }
+
+      function formatCompactAxis(num) {
+        if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+        if (num >= 1000) return (num / 1000).toFixed(num % 1000 === 0 ? 0 : 1) + 'k';
+        return Math.round(num).toString();
+      }
+
+      function getDaysLabel(days) {
+        if (days === 1) return '1일';
+        if (days === 7) return '1주일 (7일)';
+        if (days === 30) return '1개월 (30일)';
+        if (days === 365) return '1년 (365일)';
+        return days + '일';
+      }
+
+      // ==========================================
+      // 4. 프리셋 버튼 & 그래프 모드 버튼 활성 스타일
+      // ==========================================
+      function updateActiveButtons() {
+        const activeClasses = ['bg-emerald-600', 'text-white', 'border-emerald-600', 'shadow-sm'];
+        const inactiveClasses = ['bg-white', 'text-slate-700', 'border-slate-200', 'hover:border-emerald-400', 'hover:text-emerald-700'];
+
+        document.querySelectorAll('.preset-people').forEach((btn) => {
+          const val = Number(btn.getAttribute('data-people'));
+          if (val === state.people) {
+            btn.classList.remove(...inactiveClasses);
+            btn.classList.add(...activeClasses);
+          } else {
+            btn.classList.remove(...activeClasses);
+            btn.classList.add(...inactiveClasses);
+          }
+        });
+
+        document.querySelectorAll('.preset-sheets').forEach((btn) => {
+          const val = Number(btn.getAttribute('data-sheets'));
+          if (val === state.sheetsPerDay) {
+            btn.classList.remove(...inactiveClasses);
+            btn.classList.add(...activeClasses);
+          } else {
+            btn.classList.remove(...activeClasses);
+            btn.classList.add(...inactiveClasses);
+          }
+        });
+
+        document.querySelectorAll('.preset-days').forEach((btn) => {
+          const val = Number(btn.getAttribute('data-days'));
+          if (val === state.days) {
+            btn.classList.remove(...inactiveClasses);
+            btn.classList.add(...activeClasses);
+          } else {
+            btn.classList.remove(...activeClasses);
+            btn.classList.add(...inactiveClasses);
+          }
+        });
+
+        // 함수 그래프 모드 버튼 스타일
+        document.querySelectorAll('.graph-mode-btn').forEach((btn) => {
+          const mode = btn.getAttribute('data-graph-mode');
+          if (mode === state.graphMode) {
+            btn.classList.add('bg-white', 'text-emerald-800', 'shadow-sm');
+            btn.classList.remove('text-slate-600', 'hover:text-slate-900');
+          } else {
+            btn.classList.remove('bg-white', 'text-emerald-800', 'shadow-sm');
+            btn.classList.add('text-slate-600', 'hover:text-slate-900');
+          }
+        });
+      }
+
+      // ==========================================
+      // 5. [추가 기능 1] 실시간 일차함수 그래프 렌더링 (HTML5 Canvas)
+      // ==========================================
+      function renderFunctionGraph(currentSheets) {
+        const canvas = document.getElementById('function-graph-canvas');
+        const container = document.getElementById('function-graph-container');
+        if (!canvas || !container) return;
+
+        const dpr = window.devicePixelRatio || 1;
+        const rect = container.getBoundingClientRect();
+        const width = Math.max(280, Math.floor(rect.width));
+        const height = Math.max(240, Math.floor(rect.height));
+
+        canvas.width = width * dpr;
+        canvas.height = height * dpr;
+
+        const ctx = canvas.getContext('2d');
+        ctx.scale(dpr, dpr);
+        ctx.clearRect(0, 0, width, height);
+
+        // 그래프 여백 설정
+        const padLeft = 58;
+        const padRight = state.graphMode === 'both' ? 58 : 30;
+        const padTop = 28;
+        const padBottom = 42;
+
+        const plotW = width - padLeft - padRight;
+        const plotH = height - padTop - padBottom;
+
+        // X축 최대 범위 계산 (현재 지점이 그래프의 약 72% 지점에 오도록 깔끔한 눈금 설정)
+        const rawMaxX = Math.max(10, Math.ceil(currentSheets * 1.38));
+        const magnitude = Math.pow(10, Math.floor(Math.log10(rawMaxX)));
+        const maxX = Math.ceil(rawMaxX / magnitude) * magnitude;
+
+        // Y축 최대 범위 (에너지: 28 * maxX, CO2: 2.88 * maxX)
+        const maxEnergyY = maxX * CONSTANTS.ENERGY_WH_PER_SHEET;
+        const maxCo2Y = maxX * CONSTANTS.CO2_G_PER_SHEET;
+
+        // 좌표 변환 헬퍼
+        const toCanvasX = (xVal) => padLeft + (xVal / maxX) * plotW;
+        const toCanvasYEnergy = (yVal) => padTop + plotH - (yVal / maxEnergyY) * plotH;
+        const toCanvasYCo2 = (yVal) => padTop + plotH - (yVal / maxCo2Y) * plotH;
+
+        // 1. 배경 격자선 및 눈금 그리기 (5등분)
+        const gridSteps = 5;
+        ctx.font = '600 11px "Inter", "Noto Sans KR", sans-serif';
+
+        for (let i = 0; i <= gridSteps; i++) {
+          const ratio = i / gridSteps;
+          const yPos = padTop + plotH - ratio * plotH;
+
+          // 가로 격자선
+          ctx.strokeStyle = i === 0 ? '#64748b' : '#e2e8f0';
+          ctx.lineWidth = i === 0 ? 1.5 : 1;
+          ctx.beginPath();
+          ctx.moveTo(padLeft, yPos);
+          ctx.lineTo(padLeft + plotW, yPos);
+          ctx.stroke();
+
+          // 왼쪽 Y축 눈금 (에너지 Wh 또는 단독 CO2 g)
+          ctx.textAlign = 'right';
+          ctx.textBaseline = 'middle';
+          if (state.graphMode === 'co2') {
+            ctx.fillStyle = '#0369a1';
+            ctx.fillText(formatCompactAxis(maxCo2Y * ratio) + 'g', padLeft - 8, yPos);
+          } else {
+            ctx.fillStyle = '#b45309';
+            ctx.fillText(formatCompactAxis(maxEnergyY * ratio) + 'Wh', padLeft - 8, yPos);
+          }
+
+          // 오른쪽 Y축 눈금 (전체 비교 모드일 때 CO2 g 표시)
+          if (state.graphMode === 'both') {
+            ctx.textAlign = 'left';
+            ctx.fillStyle = '#0369a1';
+            ctx.fillText(formatCompactAxis(maxCo2Y * ratio) + 'g', padLeft + plotW + 8, yPos);
+          }
+
+          // 세로 격자선 및 X축 눈금
+          const xVal = maxX * ratio;
+          const xPos = padLeft + ratio * plotW;
+          ctx.strokeStyle = i === 0 ? '#64748b' : '#e2e8f0';
+          ctx.lineWidth = i === 0 ? 1.5 : 1;
+          ctx.beginPath();
+          ctx.moveTo(xPos, padTop);
+          ctx.lineTo(xPos, padTop + plotH);
+          ctx.stroke();
+
+          ctx.fillStyle = '#475569';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'top';
+          ctx.fillText(formatCompactAxis(xVal) + '장', xPos, padTop + plotH + 8);
+        }
+
+        // 축 이름 라벨
+        ctx.fillStyle = '#334155';
+        ctx.font = '700 11px "Noto Sans KR", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('총 절약한 종이 장수 x (장)', padLeft + plotW / 2, height - 14);
+
+        // 2. 일차함수 직선 그리기
+        // 2-1) 에너지 함수 y = 28x (주황/앰버 실선)
+        if (state.graphMode === 'both' || state.graphMode === 'energy') {
+          ctx.save();
+          ctx.strokeStyle = '#f59e0b';
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(toCanvasX(0), toCanvasYEnergy(0));
+          ctx.lineTo(toCanvasX(maxX), toCanvasYEnergy(maxEnergyY));
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // 2-2) CO2 함수 y = 2.88x (스카이 블루 실선/점선)
+        if (state.graphMode === 'both' || state.graphMode === 'co2') {
+          ctx.save();
+          ctx.strokeStyle = '#0ea5e9';
+          ctx.lineWidth = 3;
+          if (state.graphMode === 'both') {
+            ctx.setLineDash([7, 5]);
+          }
+          ctx.beginPath();
+          ctx.moveTo(toCanvasX(0), toCanvasYCo2(0));
+          ctx.lineTo(toCanvasX(maxX), toCanvasYCo2(maxCo2Y));
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // 3. 현재 설정된 지점 (x = currentSheets) 수직 보조선 및 강조 마커 표시
+        const curX = toCanvasX(currentSheets);
+        const curEnergyVal = currentSheets * CONSTANTS.ENERGY_WH_PER_SHEET;
+        const curCo2Val = currentSheets * CONSTANTS.CO2_G_PER_SHEET;
+        const curYEnergy = toCanvasYEnergy(curEnergyVal);
+        const curYCo2 = toCanvasYCo2(curCo2Val);
+
+        // X축에서 올라오는 수직 점선
+        ctx.save();
+        ctx.strokeStyle = '#059669';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(curX, padTop + plotH);
+        ctx.lineTo(curX, Math.min(curYEnergy, curYCo2));
+        ctx.stroke();
+        ctx.restore();
+
+        // 현재 지점 마커 및 라벨 박스 렌더링
+        if (state.graphMode === 'both' || state.graphMode === 'energy') {
+          // 외곽 링
+          ctx.beginPath();
+          ctx.arc(curX, curYEnergy, 8, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(245, 158, 11, 0.25)';
+          ctx.fill();
+
+          // 중심 점
+          ctx.beginPath();
+          ctx.arc(curX, curYEnergy, 4.5, 0, Math.PI * 2);
+          ctx.fillStyle = '#d97706';
+          ctx.fill();
+          ctx.lineWidth = 2;
+          ctx.strokeStyle = '#ffffff';
+          ctx.stroke();
+        }
+
+        if (state.graphMode === 'both' || state.graphMode === 'co2') {
+          const offsetCo2Y = state.graphMode === 'both' ? curYCo2 + 12 : curYCo2;
+          ctx.beginPath();
+          ctx.arc(curX, offsetCo2Y, 8, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(14, 165, 233, 0.25)';
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.arc(curX, offsetCo2Y, 4.5, 0, Math.PI * 2);
+          ctx.fillStyle = '#0284c7';
+          ctx.fill();
+          ctx.lineWidth = 2;
+          ctx.strokeStyle = '#ffffff';
+          ctx.stroke();
+        }
+
+        // 현재 지점 말풍선 요약 배지
+        const tagText = `x = ${formatInt(currentSheets)}장`;
+        ctx.font = '700 11px "Noto Sans KR", sans-serif';
+        const tagW = ctx.measureText(tagText).width + 16;
+        const tagX = Math.min(Math.max(padLeft + 4, curX - tagW / 2), padLeft + plotW - tagW - 4);
+        const tagY = Math.max(6, Math.min(curYEnergy, curYCo2) - 28);
+
+        ctx.fillStyle = '#065f46';
+        ctx.beginPath();
+        ctx.roundRect(tagX, tagY, tagW, 20, 6);
+        ctx.fill();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(tagText, tagX + tagW / 2, tagY + 10);
+      }
+
+      // ==========================================
+      // 6. 가상 소나무 숲 시각화 업데이트
+      // ==========================================
+      function renderPineForest(pineTreesCount) {
+        const forestBox = document.getElementById('pine-forest-box');
+        const forestBadge = document.getElementById('forest-badge');
+        const forestCountNote = document.getElementById('forest-count-note');
+
+        if (!forestBox || !forestBadge || !forestCountNote) return;
+
+        forestBadge.textContent = `소나무 ${formatDecimal(pineTreesCount, 2)}그루 효과`;
+
+        let fullTrees = Math.floor(pineTreesCount);
+        let hasSapling = false;
+
+        if (fullTrees === 0) {
+          hasSapling = true;
+        } else if (fullTrees < 100 && (pineTreesCount - fullTrees) >= 0.35) {
+          hasSapling = true;
+        }
+
+        if (fullTrees > 100) {
+          fullTrees = 100;
+          hasSapling = false;
+        }
+
+        const renderKey = `${fullTrees}-${hasSapling ? 1 : 0}`;
+        if (pineTreesCount > 100) {
+          forestCountNote.textContent = `최대 100그루 표시 (총 ${formatDecimal(pineTreesCount, 1)}그루)`;
+        } else if (fullTrees === 0) {
+          forestCountNote.textContent = '새싹 1그루 자라는 중 🌱';
+        } else {
+          forestCountNote.textContent = `${fullTrees}그루${hasSapling ? ' + 새싹 1그루' : ''} 표시 중`;
+        }
+
+        if (renderKey === lastRenderedTreeKey) return;
+        lastRenderedTreeKey = renderKey;
+
+        const fragment = document.createDocumentFragment();
+        for (let i = 0; i < fullTrees; i++) {
+          const span = document.createElement('span');
+          span.className = 'tree-sprout text-xl sm:text-2xl';
+          span.style.animationDelay = `${Math.min(i * 12, 350)}ms`;
+          span.textContent = '🌲';
+          span.setAttribute('aria-hidden', 'true');
+          fragment.appendChild(span);
+        }
+
+        if (hasSapling) {
+          const sapling = document.createElement('span');
+          sapling.className = 'tree-sprout text-xl sm:text-2xl';
+          sapling.style.animationDelay = `${Math.min(fullTrees * 12, 350)}ms`;
+          sapling.textContent = '🌱';
+          sapling.setAttribute('aria-hidden', 'true');
+          fragment.appendChild(sapling);
+        }
+
+        forestBox.innerHTML = '';
+        forestBox.appendChild(fragment);
+      }
+
+      // ==========================================
+      // 7. 전체 시뮬레이션 계산 및 UI 업데이트
+      // ==========================================
+      function updateSimulation() {
+        try {
+          const people = Math.max(1, Math.floor(Number(state.people) || 1));
+          const sheetsPerDay = Math.max(1, Math.floor(Number(state.sheetsPerDay) || 1));
+          const days = Math.max(1, Math.floor(Number(state.days) || 1));
+
+          const singleSheets = 1 * sheetsPerDay * days;
+          const totalSheets = people * sheetsPerDay * days;
+          const totalWeightKg = (totalSheets * CONSTANTS.PAPER_WEIGHT_G) / 1000;
+
+          // 1) 에너지 계산
+          const totalWh = totalSheets * CONSTANTS.ENERGY_WH_PER_SHEET;
+          const totalkWh = totalSheets * CONSTANTS.ENERGY_KWH_PER_SHEET;
+          const singlekWh = singleSheets * CONSTANTS.ENERGY_KWH_PER_SHEET;
+          const totalMJ = (totalSheets * CONSTANTS.ENERGY_KJ_PER_SHEET) / 1000;
+          const phoneCharges = totalSheets * CONSTANTS.PHONE_CHARGES_PER_SHEET;
+          const ledHours = totalSheets * CONSTANTS.LED_10W_HOURS_PER_SHEET;
+
+          // 2) 이산화탄소(CO2) 감축량 계산
+          const totalCO2g = totalSheets * CONSTANTS.CO2_G_PER_SHEET;
+          const totalCO2kg = totalCO2g / 1000;
+          const singleCO2kg = (singleSheets * CONSTANTS.CO2_G_PER_SHEET) / 1000;
+          const totalCO2Ton = totalCO2kg / 1000;
+          const carKm = totalCO2g / CONSTANTS.CAR_CO2_G_PER_KM;
+
+          // 3) 소나무 심기 효과 및 원목 보호 계산
+          const pineTreesCO2 = totalCO2kg / CONSTANTS.PINE_CO2_KG_PER_YEAR;
+          const pineTreesWood = totalSheets / CONSTANTS.SHEETS_PER_LOG_TREE;
+
+          // 4) 물 절약량 계산
+          const totalWaterL = totalSheets * CONSTANTS.WATER_L_PER_SHEET;
+          const totalWaterTon = totalWaterL / 1000;
+          const waterBottles = totalSheets * CONSTANTS.BOTTLES_500ML_PER_SHEET;
+
+          // 요약 배너 DOM 반영
+          document.getElementById('days-badge').textContent = getDaysLabel(days);
+          document.getElementById('formula-summary').textContent =
+            `${formatInt(people)}명 × 하루 ${formatInt(sheetsPerDay)}장 × ${formatInt(days)}일 실천 시`;
+          document.getElementById('total-sheets').textContent = formatInt(totalSheets);
+          document.getElementById('total-weight').textContent = `${formatDecimal(totalWeightKg, 2)} kg`;
+
+          // 카드 1: 에너지 DOM 반영
+          document.getElementById('res-kwh').textContent = formatDecimal(totalkWh, 2);
+          document.getElementById('res-wh').textContent = formatInt(totalWh);
+          document.getElementById('res-mj').textContent = formatDecimal(totalMJ, 2);
+          document.getElementById('res-phones').textContent = formatInt(phoneCharges);
+          document.getElementById('res-led').textContent = formatDecimal(ledHours, 1);
+
+          // 카드 2: 이산화탄소 DOM 반영
+          document.getElementById('res-co2-kg').textContent = formatDecimal(totalCO2kg, 2);
+          document.getElementById('res-co2-g').textContent = formatInt(totalCO2g);
+          document.getElementById('res-car-km').textContent = formatDecimal(carKm, 1);
+
+          const tonWrap = document.getElementById('res-co2-ton-wrap');
+          if (totalCO2kg >= 1000) {
+            tonWrap.classList.remove('hidden');
+            document.getElementById('res-co2-ton').textContent = formatDecimal(totalCO2Ton, 2);
+          } else {
+            tonWrap.classList.add('hidden');
+          }
+
+          // 카드 3: 소나무 심기 효과 DOM 반영
+          document.getElementById('res-pine-co2').textContent = formatDecimal(pineTreesCO2, 2);
+          document.getElementById('res-pine-wood').textContent = formatDecimal(pineTreesWood, 2);
+
+          // 카드 4: 물 절약량 DOM 반영
+          document.getElementById('res-water-l').textContent = formatInt(totalWaterL);
+          document.getElementById('res-water-ton').textContent = formatDecimal(totalWaterTon, 2);
+          document.getElementById('res-bottles').textContent = formatInt(waterBottles);
+
+          // 일차함수 좌표 텍스트 & 그래프 렌더링
+          document.getElementById('graph-coord-energy').textContent =
+            `(${formatInt(totalSheets)}장, ${formatInt(totalWh)}Wh)`;
+          document.getElementById('graph-coord-co2').textContent =
+            `(${formatInt(totalSheets)}장, ${formatDecimal(totalCO2g, 1)}g)`;
+          renderFunctionGraph(totalSheets);
+
+          // 소나무 숲 시각화 업데이트
+          renderPineForest(pineTreesCO2);
+
+          // 1명 vs 여러 명 비교 차트 업데이트
+          document.getElementById('multiplier-badge').textContent =
+            people === 1 ? '현재 1명 기준 (인원을 늘려보세요!)' : `함께하면 효과 ${formatInt(people)}배!`;
+          document.getElementById('compare-people-label').textContent = `${formatInt(people)}명`;
+
+          const singleRatioPercent = Math.max(2, Math.min(100, (1 / people) * 100));
+
+          document.getElementById('bar-energy-single-val').textContent = `${formatDecimal(singlekWh, 2)} kWh`;
+          document.getElementById('bar-energy-group-label').textContent = `우리 함께 (${formatInt(people)}명)`;
+          document.getElementById('bar-energy-group-val').textContent = `${formatDecimal(totalkWh, 2)} kWh`;
+          document.getElementById('bar-energy-single').style.width = `${singleRatioPercent}%`;
+          document.getElementById('bar-energy-group').style.width = '100%';
+
+          document.getElementById('bar-co2-single-val').textContent = `${formatDecimal(singleCO2kg, 2)} kg`;
+          document.getElementById('bar-co2-group-label').textContent = `우리 함께 (${formatInt(people)}명)`;
+          document.getElementById('bar-co2-group-val').textContent = `${formatDecimal(totalCO2kg, 2)} kg`;
+          document.getElementById('bar-co2-single').style.width = `${singleRatioPercent}%`;
+          document.getElementById('bar-co2-group').style.width = '100%';
+
+          updateActiveButtons();
+        } catch (err) {
+          console.error('시뮬레이션 계산 중 오류가 발생했습니다:', err);
+        }
+      }
+
+      // ==========================================
+      // 8. [업그레이드] 실물 A4 문서 기반 이면지 분류 챌린지 로직
+      // ==========================================
+      const SoundFX = {
+        enabled: true,
+        ctx: null,
+        getContext() {
+          if (!this.ctx) {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (AudioCtx) this.ctx = new AudioCtx();
+          }
+          if (this.ctx && this.ctx.state === 'suspended') {
+            this.ctx.resume();
+          }
+          return this.ctx;
+        },
+        playFlip() {
+          if (!this.enabled) return;
+          const ctx = this.getContext();
+          if (!ctx) return;
+          // 종이 넘기는 사각거리는 화이트 노이즈 효과
+          const bufferSize = Math.floor(ctx.sampleRate * 0.14);
+          const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+          const data = buffer.getChannelData(0);
+          for (let i = 0; i < bufferSize; i++) {
+            data[i] = (Math.random() * 2 - 1) * Math.sin((i / bufferSize) * Math.PI);
+          }
+          const noise = ctx.createBufferSource();
+          noise.buffer = buffer;
+
+          const filter = ctx.createBiquadFilter();
+          filter.type = 'bandpass';
+          filter.frequency.setValueAtTime(1400, ctx.currentTime);
+          filter.Q.value = 1.2;
+
+          const gain = ctx.createGain();
+          gain.gain.setValueAtTime(0.18, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.14);
+
+          noise.connect(filter);
+          filter.connect(gain);
+          gain.connect(ctx.destination);
+          noise.start();
+        },
+        playCorrect() {
+          if (!this.enabled) return;
+          const ctx = this.getContext();
+          if (!ctx) return;
+          const notes = [523.25, 659.25, 783.99]; // 도-미-솔
+          notes.forEach((freq, idx) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.08);
+            gain.gain.setValueAtTime(0.16, ctx.currentTime + idx * 0.08);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + idx * 0.08 + 0.28);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(ctx.currentTime + idx * 0.08);
+            osc.stop(ctx.currentTime + idx * 0.08 + 0.28);
+          });
+        },
+        playWrong() {
+          if (!this.enabled) return;
+          const ctx = this.getContext();
+          if (!ctx) return;
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(185, ctx.currentTime);
+          osc.frequency.linearRampToValueAtTime(135, ctx.currentTime + 0.3);
+          gain.gain.setValueAtTime(0.15, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.32);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.32);
+        },
+        playWin() {
+          if (!this.enabled) return;
+          const ctx = this.getContext();
+          if (!ctx) return;
+          const fanfare = [523.25, 659.25, 783.99, 1046.5];
+          fanfare.forEach((freq, idx) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.11);
+            gain.gain.setValueAtTime(0.18, ctx.currentTime + idx * 0.11);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + idx * 0.11 + 0.42);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(ctx.currentTime + idx * 0.11);
+            osc.stop(ctx.currentTime + idx * 0.11 + 0.42);
+          });
+        }
+      };
+
+      // 실제 A4 문서처럼 보이는 8장의 종이 데이터
+      const SCRAP_PAPERS = [
+        {
+          id: 1,
+          isGlossy: false,
+          frontSheetHtml: `
+            <div class="border-2 border-slate-800 p-3 h-full flex flex-col justify-between text-slate-800 select-none">
+              <div>
+                <div class="text-center border-b-2 border-slate-800 pb-2 mb-2.5">
+                  <div class="text-[10px] font-bold text-slate-500">2026학년도 2학기 중학교 2학년</div>
+                  <div class="text-sm sm:text-base font-black tracking-tight">수학 형성평가 (일차함수와 연립방정식)</div>
+                  <div class="flex justify-between text-[10px] text-slate-600 mt-1 px-1">
+                    <span>제 2학년 ( &nbsp;&nbsp; )반 &nbsp;이름: ________</span>
+                    <span class="text-rose-600 font-extrabold">채점 완료 ✔</span>
+                  </div>
+                </div>
+                <div class="space-y-2.5 text-[11px] sm:text-xs leading-snug">
+                  <div class="relative">
+                    <span class="font-bold">1.</span> 일차함수 <span class="font-mono font-bold">y = 2x + 3</span>의 그래프에서 y절편을 구하시오.
+                    <div class="text-blue-600 font-bold pl-3 mt-0.5">풀이: x = 0일 때 y = 3 &nbsp;<span class="text-rose-600 font-black">⭕ (맞음)</span></div>
+                  </div>
+                  <div class="relative">
+                    <span class="font-bold">2.</span> 연립방정식 <span class="font-mono">x + y = 10, 2x - y = 5</span>의 해를 구하시오.
+                    <div class="text-blue-600 font-bold pl-3 mt-0.5">풀이: 3x = 15 → x = 5, y = 5 &nbsp;<span class="text-rose-600 font-black">⭕ (맞음)</span></div>
+                  </div>
+                </div>
+              </div>
+              <div class="text-[10px] text-slate-400 text-right border-t border-slate-200 pt-1">
+                - 1쪽 (단면 인쇄 시험지) -
+              </div>
+            </div>
+          `,
+          backSheetHtml: `
+            <div class="h-full border border-dashed border-slate-200 rounded p-4 flex flex-col items-center justify-center text-center select-none relative">
+              <div class="text-slate-300 text-xs font-semibold tracking-widest uppercase mb-1">BLANK BACK SIDE</div>
+              <div class="text-slate-400 text-[11px]">아무것도 인쇄되지 않은 깨끗한 A4 백지 뒷면</div>
+            </div>
+          `,
+          isUsable: true,
+          correctReason: '앞면은 중2 수학 형성평가 문제지이고, 뒷면은 아무것도 적히지 않은 깨끗한 백지이며 개인정보도 없으므로 이면지함에 넣어 연습장으로 재사용할 수 있습니다!',
+          wrongReason: '앞면에 수학 시험 문제가 인쇄되어 있지만 뒷면이 완전히 깨끗한 백지입니다. 버리지 않고 이면지함에 넣어 계산 연습장으로 쓰면 종이를 아낄 수 있어요!'
+        },
+        {
+          id: 2,
+          isGlossy: false,
+          frontSheetHtml: `
+            <div class="border border-slate-400 p-3 h-full flex flex-col justify-between text-slate-800 select-none">
+              <div>
+                <div class="flex items-center justify-between border-b-2 border-emerald-700 pb-1.5 mb-2">
+                  <span class="text-[10px] font-extrabold text-emerald-800">가정통신문 제2026-48호</span>
+                  <span class="text-[10px] text-slate-500">능허대중학교</span>
+                </div>
+                <div class="text-sm font-black text-center text-slate-900 mb-2">
+                  겨울방학 안전생활 및 에너지 절약 안내
+                </div>
+                <p class="text-[11px] text-slate-600 leading-relaxed mb-2">
+                  학부모님 안녕하십니까? 겨울방학을 맞이하여 학생들의 안전한 생활과 가정 내 에너지 절약 실천 사항을 안내해 드립니다.
+                </p>
+                <table class="w-full text-[10px] border-collapse border border-slate-300">
+                  <tr class="bg-slate-100">
+                    <th class="border border-slate-300 p-1">구분</th>
+                    <th class="border border-slate-300 p-1">주요 실천 내용</th>
+                  </tr>
+                  <tr>
+                    <td class="border border-slate-300 p-1 text-center font-bold">안전</td>
+                    <td class="border border-slate-300 p-1">빙판길 보행 주의 및 교통안전 수칙 준수</td>
+                  </tr>
+                  <tr>
+                    <td class="border border-slate-300 p-1 text-center font-bold">환경</td>
+                    <td class="border border-slate-300 p-1">대기전력 차단 및 일회용품·종이 아껴 쓰기</td>
+                  </tr>
+                </table>
+              </div>
+              <div class="text-[10px] text-slate-500 text-center font-bold">▼ 뒷면에 학부모 동의서가 있습니다 ▼</div>
+            </div>
+          `,
+          backSheetHtml: `
+            <div class="border-2 border-slate-700 p-3 h-full flex flex-col justify-between text-slate-800 select-none">
+              <div>
+                <div class="text-xs font-black text-center bg-slate-100 py-1.5 border border-slate-300 mb-2">
+                  [뒷면] 방학 중 체험학습 및 안전생활 학부모 동의서
+                </div>
+                <p class="text-[11px] text-slate-700 leading-relaxed mb-2">
+                  위 안내 사항을 충분히 숙지하였으며, 자녀의 안전한 방학 생활 지도에 동의합니다.
+                </p>
+                <div class="border border-slate-400 p-2 text-[11px] space-y-1.5 bg-slate-50">
+                  <div>• 학생 인적사항: 2학년 ( &nbsp;&nbsp; )반 ( &nbsp;&nbsp; )번 &nbsp;성명: ___________</div>
+                  <div>• 보호자 성명: _______________ (서명 또는 인)</div>
+                  <div>• 비상 연락처: 010 - ________ - ________</div>
+                </div>
+              </div>
+              <div class="text-[10px] text-rose-700 font-extrabold text-right">
+                ※ 양면 인쇄된 가정통신문 (2/2쪽)
+              </div>
+            </div>
+          `,
+          isUsable: false,
+          correctReason: '앞면은 안내문이고 뒷면에도 학부모 동의서 양식이 가득 인쇄된 양면 인쇄 문서이므로, 이면지로 쓸 수 없어 종이류 분리배출함에 넣어야 합니다!',
+          wrongReason: '뒷면을 확인해 보세요! 뒷면에도 학부모 동의서 표와 글씨가 가득 인쇄되어 있어 필기할 수 없는 양면 인쇄 문서입니다.'
+        },
+        {
+          id: 3,
+          isGlossy: true,
+          frontSheetHtml: `
+            <div class="h-full rounded bg-gradient-to-br from-rose-500 via-orange-400 to-amber-300 p-3.5 text-white flex flex-col justify-between select-none relative overflow-hidden">
+              <div class="flex items-center justify-between">
+                <span class="px-2 py-0.5 rounded bg-black/40 text-[10px] font-extrabold">✨ 유광 비닐 코팅지</span>
+                <span class="text-[10px] font-bold bg-white/25 px-2 py-0.5 rounded">OPEN EVENT</span>
+              </div>
+              <div class="my-auto text-center drop-shadow">
+                <div class="text-xs font-extrabold tracking-wider text-amber-100">매콤달콤 학교 앞 맛집 오픈!</div>
+                <div class="text-xl sm:text-2xl font-black mt-0.5">동네 떡볶이 &amp; 분식</div>
+                <div class="inline-block mt-2 px-3 py-1 rounded-full bg-white text-rose-600 font-black text-xs sm:text-sm shadow">
+                  전 메뉴 20% 할인 쿠폰!
+                </div>
+              </div>
+              <div class="text-[10px] text-white/95 bg-black/25 rounded p-1.5 text-center font-semibold">
+                ※ 물에 젖지 않게 양면 유광 비닐 코팅 처리된 홍보 전단지입니다.
+              </div>
+            </div>
+          `,
+          backSheetHtml: `
+            <div class="h-full rounded bg-gradient-to-tr from-slate-100 via-white to-sky-50 border border-slate-300 p-4 flex flex-col items-center justify-center text-center select-none relative">
+              <div class="px-2.5 py-1 rounded-full bg-amber-100 text-amber-900 text-[10px] font-extrabold mb-2">
+                ✨ 매끈매끈 비닐 코팅 표면 (연필 번짐 주의)
+              </div>
+              <div class="text-xs font-bold text-slate-600 mb-1">겉보기에 하얗지만 비닐 필름이 코팅된 뒷면</div>
+              <p class="text-[11px] text-slate-500 max-w-xs leading-relaxed">
+                연필이나 볼펜을 쓰면 잉크가 마르지 않고 손에 번지며, 일반 종이와 섞이면 재활용 공정을 방해합니다.
+              </p>
+            </div>
+          `,
+          isUsable: false,
+          correctReason: '유광 비닐 코팅된 전단지는 뒷면이 하얗더라도 연필·볼펜이 미끄러져 필기가 불가능하고 일반 종이 재활용을 방해하므로 이면지함에 넣으면 안 됩니다!',
+          wrongReason: '조심하세요! 뒷면이 하얗게 보여도 양면 유광 비닐 코팅된 전단지는 글씨가 번져서 이면지로 쓸 수 없고 종이 재활용도 불가능합니다.'
+        },
+        {
+          id: 4,
+          isGlossy: false,
+          frontSheetHtml: `
+            <div class="border border-slate-300 p-3 h-full flex flex-col justify-between text-slate-800 select-none">
+              <div>
+                <div class="flex items-center justify-between border-b border-slate-300 pb-1.5 mb-2">
+                  <span class="text-xs font-black text-slate-800">🔬 과학 실험 보고서 초안</span>
+                  <span class="text-[10px] text-slate-500">주제: 물의 상태 변화</span>
+                </div>
+                <div class="grid grid-cols-12 gap-2 items-center my-2">
+                  <div class="col-span-5 flex flex-col items-center justify-center p-2 rounded bg-slate-50 border border-slate-200">
+                    <!-- 간단한 비커 SVG 스케치 -->
+                    <svg viewBox="0 0 80 80" class="w-14 h-14 stroke-slate-700 fill-none" stroke-width="2.5">
+                      <path d="M22 15 L22 62 Q22 68 28 68 L52 68 Q58 68 58 62 L58 15" />
+                      <line x1="18" y1="15" x2="62" y2="15" />
+                      <path d="M23 42 Q40 38 57 42 L57 62 Q57 67 52 67 L28 67 Q23 67 23 62 Z" fill="#bae6fd" stroke="none" />
+                      <line x1="28" y1="30" x2="36" y2="30" stroke-width="1.5" />
+                      <line x1="28" y1="45" x2="36" y2="45" stroke-width="1.5" />
+                    </svg>
+                    <span class="text-[9px] text-slate-500 mt-1">[그림] 비커 가열 실험</span>
+                  </div>
+                  <div class="col-span-7 text-[11px] text-slate-600 space-y-1">
+                    <div class="font-bold text-slate-800">1. 가설 설정</div>
+                    <p>열을 가하면 얼음이 녹아 물이 되고 계속 가열하면 수증기로 변한다.</p>
+                    <div class="font-bold text-slate-800 pt-1">2. 관찰 결과</div>
+                    <p>100℃ 부근에서 기포가 발생하며 끓기 시작함.</p>
+                  </div>
+                </div>
+              </div>
+              <div class="text-[10px] text-slate-400 text-right">단면 출력 초안 (개인정보 없음)</div>
+            </div>
+          `,
+          backSheetHtml: `
+            <div class="h-full border border-dashed border-slate-200 rounded p-3 flex flex-col justify-between select-none">
+              <div class="text-left">
+                <span class="inline-block text-[11px] font-semibold text-slate-500 border-b border-slate-300 pb-0.5">
+                  ✏️ 11/24 메모: 준비물 챙기기
+                </span>
+              </div>
+              <div class="my-auto text-center">
+                <div class="text-xs font-bold text-emerald-700">나머지 95% 이상의 공간이 깨끗한 백지입니다!</div>
+                <div class="text-[11px] text-slate-400 mt-0.5">연습장·계산용지로 충분히 활용 가능</div>
+              </div>
+              <div class="h-2"></div>
+            </div>
+          `,
+          isUsable: true,
+          correctReason: '뒷면 맨 위 모서리에 아주 작은 연필 메모 한 줄만 있을 뿐 나머지 넓은 공간이 모두 깨끗하므로, 교실 이면지함에 넣어 재사용하기에 아주 좋습니다!',
+          wrongReason: '뒷면 맨 위 구석에 작은 메모 한 줄만 있을 뿐 거의 전체가 깨끗한 백지이므로, 버리지 않고 이면지함에서 다시 쓰는 것이 좋습니다!'
+        },
+        {
+          id: 5,
+          isGlossy: false,
+          frontSheetHtml: `
+            <div class="border-2 border-indigo-200 bg-indigo-50/40 p-3.5 h-full flex flex-col justify-between text-slate-800 select-none">
+              <div class="text-center my-auto">
+                <span class="px-2.5 py-0.5 rounded-full bg-indigo-600 text-white text-[10px] font-bold">2학기 신입 부원 모집</span>
+                <h4 class="text-lg font-black text-indigo-950 mt-2">🌱 교내 환경·과학 탐구 동아리</h4>
+                <p class="text-xs text-slate-600 mt-1.5 leading-relaxed">
+                  우리 학교의 에너지 절약과 탄소 중립을 함께 연구할<br />열정 가득한 친구들을 모집합니다!
+                </p>
+                <div class="mt-3 inline-block px-3 py-1 rounded bg-white border border-indigo-200 text-[11px] font-bold text-indigo-800">
+                  모집 기간: 이번 주 금요일까지 (과학실 앞)
+                </div>
+              </div>
+              <div class="text-[10px] text-slate-400 text-center">단면 홍보 포스터 출력본</div>
+            </div>
+          `,
+          backSheetHtml: `
+            <div class="h-full bg-amber-50/30 border border-amber-200 rounded p-4 flex flex-col items-center justify-center text-center select-none relative overflow-hidden">
+              <!-- 커피/차 원형 얼룩 그래픽 -->
+              <div class="w-32 h-32 rounded-full border-[6px] border-amber-800/45 bg-amber-700/15 flex items-center justify-center shadow-inner relative">
+                <div class="w-24 h-24 rounded-full border-2 border-amber-900/25 bg-amber-800/10"></div>
+                <span class="absolute -bottom-2 bg-amber-900 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full">
+                  ☕ 커피·음료 얼룩 &amp; 물젖음
+                </span>
+              </div>
+              <p class="text-[11px] font-bold text-amber-950 mt-4">
+                뒷면 한가운데에 진한 커피 자국이 배어 있고 종이가 쭈글쭈글하게 젖어 있습니다.
+              </p>
+            </div>
+          `,
+          isUsable: false,
+          correctReason: '앞면은 깨끗해 보이지만 뒷면에 커피·음료 얼룩이 크게 묻어 젖어 있으므로, 이면지함에 넣으면 다른 종이까지 오염시켜 일반쓰레기로 폐기해야 합니다!',
+          wrongReason: '뒷면을 확인해 보세요! 뒷면 한가운데에 커다란 커피 얼룩이 묻어 젖어 있어 이면지로 쓸 수 없고 다른 종이까지 오염시킵니다.'
+        },
+        {
+          id: 6,
+          isGlossy: false,
+          frontSheetHtml: `
+            <div class="border border-slate-400 p-3 h-full flex flex-col justify-between text-slate-800 select-none">
+              <div>
+                <div class="flex items-center justify-between border-b-2 border-slate-700 pb-1.5 mb-2">
+                  <span class="text-xs sm:text-sm font-black">📚 영어 단어 테스트 (Unit 7 ~ 8)</span>
+                  <span class="text-[10px] font-bold text-emerald-700">Score: 100 / 100</span>
+                </div>
+                <div class="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px]">
+                  <div class="border-b border-slate-200 pb-0.5">1. environment : <span class="text-blue-600 font-bold">환경</span></div>
+                  <div class="border-b border-slate-200 pb-0.5">2. recycle : <span class="text-blue-600 font-bold">재활용하다</span></div>
+                  <div class="border-b border-slate-200 pb-0.5">3. resource : <span class="text-blue-600 font-bold">자원</span></div>
+                  <div class="border-b border-slate-200 pb-0.5">4. sustainable : <span class="text-blue-600 font-bold">지속 가능한</span></div>
+                  <div class="border-b border-slate-200 pb-0.5">5. carbon : <span class="text-blue-600 font-bold">탄소</span></div>
+                  <div class="border-b border-slate-200 pb-0.5">6. conserve : <span class="text-blue-600 font-bold">보존하다</span></div>
+                </div>
+              </div>
+              <div class="text-[10px] text-slate-400 text-right">단면 인쇄 단어 시험지 (개인정보 없음)</div>
+            </div>
+          `,
+          backSheetHtml: `
+            <div class="h-full border border-dashed border-slate-200 rounded p-4 flex flex-col items-center justify-center text-center select-none">
+              <div class="text-slate-300 text-xs font-semibold tracking-widest uppercase mb-1">CLEAN BACK SIDE</div>
+              <div class="text-slate-400 text-[11px]">인쇄 자국이나 얼룩이 전혀 없는 깨끗한 백지입니다</div>
+            </div>
+          `,
+          isUsable: true,
+          correctReason: '단면 인쇄된 영어 단어 시험지로 뒷면이 깨끗하고 개인정보도 적혀 있지 않아 교실 이면지함에 넣어 다시 쓰기에 완벽한 종이입니다!',
+          wrongReason: '앞면에 영어 단어 테스트가 인쇄되어 있지만 뒷면은 완전히 깨끗한 백지입니다. 이면지함에 넣어 재사용하면 새 종이를 절약할 수 있어요!'
+        },
+        {
+          id: 7,
+          isGlossy: false,
+          frontSheetHtml: `
+            <div class="border-2 border-rose-400 bg-rose-50/30 p-3 h-full flex flex-col justify-between text-slate-800 select-none relative">
+              <div>
+                <div class="flex items-center justify-between border-b-2 border-rose-500 pb-1.5 mb-2">
+                  <span class="text-xs font-black text-rose-900">🔒 학생 개인정보 및 비상연락망 확인서</span>
+                  <span class="px-2 py-0.5 rounded border border-rose-600 text-rose-600 text-[10px] font-black">대외비</span>
+                </div>
+                <table class="w-full text-[10px] border-collapse border border-slate-400 bg-white">
+                  <tr class="bg-rose-100/70">
+                    <th class="border border-slate-400 p-1">학번/성명</th>
+                    <th class="border border-slate-400 p-1">학생 연락처</th>
+                    <th class="border border-slate-400 p-1">자택 상세 주소</th>
+                  </tr>
+                  <tr>
+                    <td class="border border-slate-400 p-1 font-bold">20901 김○○</td>
+                    <td class="border border-slate-400 p-1">010-1234-****</td>
+                    <td class="border border-slate-400 p-1">인천 연수구 송도동 ***호</td>
+                  </tr>
+                  <tr>
+                    <td class="border border-slate-400 p-1 font-bold">20902 이○○</td>
+                    <td class="border border-slate-400 p-1">010-5678-****</td>
+                    <td class="border border-slate-400 p-1">인천 연수구 옥련동 ***호</td>
+                  </tr>
+                </table>
+              </div>
+              <div class="text-[10px] font-bold text-rose-700">
+                ※ 학생 이름·전화번호·집 주소 등 민감한 개인정보 포함 문서
+              </div>
+            </div>
+          `,
+          backSheetHtml: `
+            <div class="h-full border border-dashed border-rose-200 rounded p-4 flex flex-col items-center justify-center text-center select-none">
+              <div class="text-slate-400 text-xs font-bold mb-1">뒷면은 하얀 백지이지만...</div>
+              <div class="text-[11px] text-rose-600 font-semibold">
+                앞면에 친구들의 이름·전화번호·집 주소가 인쇄되어 있습니다!
+              </div>
+            </div>
+          `,
+          isUsable: false,
+          correctReason: '뒷면이 깨끗하더라도 앞면에 이름, 전화번호, 집 주소 같은 개인정보가 적힌 문서는 유출 위험이 있으므로 절대 공용 이면지함에 넣지 않고 파쇄(폐기)해야 합니다!',
+          wrongReason: '위험해요! 뒷면이 하얗더라도 학생들의 전화번호와 집 주소가 적힌 개인정보 문서를 교실 이면지함에 넣으면 개인정보 유출 사고가 발생합니다.'
+        },
+        {
+          id: 8,
+          isGlossy: false,
+          frontSheetHtml: `
+            <div class="border border-slate-300 p-3 h-full flex flex-col justify-between text-slate-800 select-none relative">
+              <!-- 왼쪽 상단 금속 스테이플러 심 그래픽 -->
+              <div class="flex items-center gap-1.5 mb-1">
+                <span class="inline-block w-6 h-1.5 rounded-full bg-gradient-to-r from-slate-400 via-slate-200 to-slate-500 border border-slate-500 shadow-sm transform -rotate-12" title="스테이플러 철심"></span>
+                <span class="text-[10px] font-bold text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded">왼쪽 위 스테이플러 심 1개</span>
+              </div>
+              <div>
+                <div class="text-sm font-black text-slate-900 border-b border-slate-300 pb-1 mb-2">
+                  🌏 사회 수행평가 안내문 (기후 변화와 지역 대응)
+                </div>
+                <p class="text-[11px] text-slate-600 leading-relaxed">
+                  1. 제출 기한: 다음 주 수요일 사회 수업 시간<br />
+                  2. 준비물: 조사 보고서 요약본 1매 (단면 출력)<br />
+                  3. 평가 기준: 자료의 정확성, 실천 방안의 구체성
+                </p>
+              </div>
+              <div class="text-[10px] text-slate-400 text-right">단면 안내문 (철심 제거 가능)</div>
+            </div>
+          `,
+          backSheetHtml: `
+            <div class="h-full border border-dashed border-slate-200 rounded p-4 flex flex-col items-center justify-center text-center select-none">
+              <div class="text-slate-300 text-xs font-semibold tracking-widest uppercase mb-1">CLEAN BACK SIDE</div>
+              <div class="text-slate-500 text-[11px]">왼쪽 위 스테이플러 심 1개만 제거하면 뒷면 전체가 깨끗한 백지입니다!</div>
+            </div>
+          `,
+          isUsable: true,
+          correctReason: '왼쪽 모서리의 스테이플러 심 1개만 간단히 빼내면 뒷면 전체가 깨끗한 백지이므로, 철심을 제거한 뒤 이면지함에 넣어 안전하게 재사용할 수 있습니다!',
+          wrongReason: '모서리의 스테이플러 심은 간단히 떼어낼 수 있고 뒷면이 완전히 깨끗한 백지이므로, 철심만 제거해서 이면지함에서 재사용할 수 있습니다.'
+        }
+      ];
+
+      const scrapState = {
+        deck: [],
+        currentIndex: 0,
+        score: 0,
+        correctCount: 0,
+        wrongCount: 0,
+        isFlipped: false,
+        answered: false,
+        passScore: 80
+      };
+
+      function shuffleArray(arr) {
+        const copy = arr.slice();
+        for (let i = copy.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [copy[i], copy[j]] = [copy[j], copy[i]];
+        }
+        return copy;
+      }
+
+      function startScrapGame() {
+        scrapState.deck = shuffleArray(SCRAP_PAPERS);
+        scrapState.currentIndex = 0;
+        scrapState.score = 0;
+        scrapState.correctCount = 0;
+        scrapState.wrongCount = 0;
+        scrapState.isFlipped = false;
+        scrapState.answered = false;
+
+        document.getElementById('scrap-start-lobby').classList.add('hidden');
+        document.getElementById('scrap-result-area').classList.add('hidden');
+        document.getElementById('scrap-play-area').classList.remove('hidden');
+
+        const hud = document.getElementById('scrap-hud-badges');
+        hud.classList.remove('hidden');
+        hud.classList.add('flex');
+
+        SoundFX.playFlip();
+        renderScrapCard();
+      }
+
+      function setCardFlip(flipToBack, playSound = true) {
+        scrapState.isFlipped = flipToBack;
+        const inner = document.getElementById('paper-card-inner');
+        const indicator = document.getElementById('scrap-side-indicator');
+        const flipCheck = document.getElementById('scrap-flip-check');
+        const flipBtnLabel = document.getElementById('btn-flip-label');
+
+        if (playSound) {
+          SoundFX.playFlip();
+        }
+
+        if (flipToBack) {
+          inner.classList.add('is-flipped');
+          indicator.textContent = '🔄 현재 보는 면: 뒷면 (BACK)';
+          indicator.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-800 text-emerald-50 text-xs font-extrabold shadow-sm';
+          flipCheck.textContent = '✅ 앞면과 뒷면을 모두 확인했습니다!';
+          flipCheck.className = 'px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-extrabold shadow-sm';
+          flipBtnLabel.textContent = '종이 다시 뒤집기 (앞면 보기)';
+        } else {
+          inner.classList.remove('is-flipped');
+          indicator.textContent = '📄 현재 보는 면: 앞면 (FRONT)';
+          indicator.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-950/80 text-amber-100 text-xs font-extrabold shadow-sm';
+          flipBtnLabel.textContent = '종이 뒤집기 (뒷면 확인하기)';
+        }
+      }
+
+      function renderScrapCard() {
+        const total = scrapState.deck.length;
+        const idx = scrapState.currentIndex;
+        const item = scrapState.deck[idx];
+
+        scrapState.answered = false;
+        setCardFlip(false, false);
+
+        // 상단 진행률 및 점수 업데이트
+        document.getElementById('scrap-progress-text').textContent = `${idx + 1}`;
+        document.getElementById('scrap-score-text').textContent = `${scrapState.score}`;
+        document.getElementById('scrap-progress-bar').style.width = `${((idx + 1) / total) * 100}%`;
+        document.getElementById('paper-number-pill').textContent = `${idx + 1} / ${total}번째 종이`;
+
+        document.getElementById('scrap-flip-check').textContent = '👆 종이를 클릭하거나 아래 버튼으로 뒤집으세요!';
+        document.getElementById('scrap-flip-check').className = 'px-3 py-1 rounded-full bg-white/90 text-slate-700 text-xs font-bold shadow-sm';
+
+        // 실제 종이 앞면·뒷면 HTML 렌더링
+        document.getElementById('card-front-sheet-body').innerHTML = item.frontSheetHtml;
+        document.getElementById('card-back-sheet-body').innerHTML = item.backSheetHtml;
+
+        // 유광 코팅 반사광 오버레이 토글
+        const frontGloss = document.getElementById('front-glossy-overlay');
+        const backGloss = document.getElementById('back-glossy-overlay');
+        if (item.isGlossy) {
+          frontGloss.classList.remove('hidden');
+          backGloss.classList.remove('hidden');
+        } else {
+          frontGloss.classList.add('hidden');
+          backGloss.classList.add('hidden');
+        }
+
+        // 판정 버튼 활성화 & 피드백 박스 초기화
+        document.getElementById('btn-judge-usable').disabled = false;
+        document.getElementById('btn-judge-unusable').disabled = false;
+
+        const stamp = document.getElementById('scrap-stamp-badge');
+        stamp.classList.add('hidden');
+
+        const fbBox = document.getElementById('scrap-feedback-box');
+        fbBox.className = 'mt-5 rounded-2xl p-4 border bg-white border-slate-200 transition-all relative';
+        document.getElementById('scrap-feedback-title').className = 'text-xs sm:text-sm font-extrabold text-slate-700 mb-1 pr-16';
+        document.getElementById('scrap-feedback-title').textContent = '👈 책상 위 종이를 뒤집어 양면을 확인하세요!';
+        document.getElementById('scrap-feedback-desc').className = 'text-xs text-slate-500 leading-relaxed';
+        document.getElementById('scrap-feedback-desc').textContent = '앞면만 보고 판단하면 틀릴 수 있습니다. 종이를 클릭해 뒷면 상태까지 꼭 확인해 보세요.';
+
+        document.getElementById('btn-next-paper').classList.add('hidden');
+      }
+
+      function handleScrapJudgment(userChoseUsable) {
+        if (scrapState.answered) return;
+        scrapState.answered = true;
+
+        const item = scrapState.deck[scrapState.currentIndex];
+        const isCorrect = (userChoseUsable === item.isUsable);
+
+        document.getElementById('btn-judge-usable').disabled = true;
+        document.getElementById('btn-judge-unusable').disabled = true;
+
+        const fbBox = document.getElementById('scrap-feedback-box');
+        const fbTitle = document.getElementById('scrap-feedback-title');
+        const fbDesc = document.getElementById('scrap-feedback-desc');
+        const stamp = document.getElementById('scrap-stamp-badge');
+        const nextBtn = document.getElementById('btn-next-paper');
+
+        stamp.classList.remove('hidden');
+
+        if (isCorrect) {
+          scrapState.score += 15;
+          scrapState.correctCount += 1;
+          SoundFX.playCorrect();
+
+          stamp.textContent = '정답 +15점';
+          stamp.className = 'stamp-badge absolute -top-3 right-3 px-3 py-1 rounded-lg border-2 border-emerald-600 bg-emerald-50 text-emerald-700 font-black text-xs tracking-wider shadow-sm';
+
+          fbBox.className = 'mt-5 rounded-2xl p-4 border-2 bg-emerald-50 border-emerald-400 transition-all relative';
+          fbTitle.className = 'text-xs sm:text-sm font-extrabold text-emerald-800 mb-1 pr-20';
+          fbTitle.textContent = '🎉 정확한 판단입니다! 환경 점수 +15점!';
+          fbDesc.className = 'text-xs text-emerald-950 leading-relaxed';
+          fbDesc.textContent = item.correctReason;
+        } else {
+          scrapState.score = Math.max(0, scrapState.score - 10);
+          scrapState.wrongCount += 1;
+          SoundFX.playWrong();
+
+          const inner = document.getElementById('paper-card-inner');
+          inner.classList.remove('shake-card');
+          void inner.offsetWidth;
+          inner.classList.add('shake-card');
+          if (!scrapState.isFlipped) {
+            setCardFlip(true, false);
+          }
+
+          stamp.textContent = '오답 -10점';
+          stamp.className = 'stamp-badge absolute -top-3 right-3 px-3 py-1 rounded-lg border-2 border-rose-600 bg-rose-50 text-rose-700 font-black text-xs tracking-wider shadow-sm';
+
+          fbBox.className = 'mt-5 rounded-2xl p-4 border-2 bg-rose-50 border-rose-400 transition-all relative';
+          fbTitle.className = 'text-xs sm:text-sm font-extrabold text-rose-800 mb-1 pr-20';
+          fbTitle.textContent = '❌ 잘못된 분류입니다! 환경 점수 -10점!';
+          fbDesc.className = 'text-xs text-rose-950 leading-relaxed';
+          fbDesc.textContent = item.wrongReason;
+        }
+
+        document.getElementById('scrap-score-text').textContent = `${scrapState.score}`;
+
+        nextBtn.classList.remove('hidden');
+        if (scrapState.currentIndex === scrapState.deck.length - 1) {
+          nextBtn.textContent = '최종 환경 점수 결과 확인하기 🏆';
+        } else {
+          nextBtn.textContent = '다음 종이 확인하기 →';
+        }
+      }
+
+      function showScrapFinalResult() {
+        document.getElementById('scrap-play-area').classList.add('hidden');
+        const resultArea = document.getElementById('scrap-result-area');
+        resultArea.classList.remove('hidden');
+
+        const passed = scrapState.score >= scrapState.passScore;
+
+        document.getElementById('final-scrap-score').textContent = `${scrapState.score}점`;
+        document.getElementById('final-scrap-correct').textContent = `${scrapState.correctCount} / ${scrapState.wrongCount}`;
+
+        if (passed) {
+          SoundFX.playWin();
+          resultArea.className = 'mt-6 rounded-3xl p-6 sm:p-8 text-center border-2 bg-gradient-to-b from-emerald-50 to-teal-50/70 border-emerald-400 transition-all';
+          document.getElementById('scrap-result-emoji').textContent = '🏆';
+          document.getElementById('scrap-result-badge').className = 'inline-block px-4 py-1 rounded-full text-xs font-extrabold mb-2 bg-emerald-600 text-white';
+          document.getElementById('scrap-result-badge').textContent = '미션 통과! (80점 이상 달성)';
+          document.getElementById('scrap-result-heading').textContent = '축하합니다! 교실 이면지 마스터 인증!';
+          document.getElementById('scrap-result-message').textContent =
+            `총 ${scrapState.score}점을 기록하여 통과 기준(80점)을 훌륭히 넘겼습니다! 앞면과 뒷면을 꼼꼼히 확인하는 습관으로 우리 반의 에너지와 소나무를 지킬 수 있습니다.`;
+        } else {
+          resultArea.className = 'mt-6 rounded-3xl p-6 sm:p-8 text-center border-2 bg-gradient-to-b from-amber-50 to-rose-50/60 border-amber-300 transition-all';
+          document.getElementById('scrap-result-emoji').textContent = '🌱';
+          document.getElementById('scrap-result-badge').className = 'inline-block px-4 py-1 rounded-full text-xs font-extrabold mb-2 bg-amber-500 text-white';
+          document.getElementById('scrap-result-badge').textContent = '통과 기준 미달 (80점 미만)';
+          document.getElementById('scrap-result-heading').textContent = '조금만 더 힘내세요! 다시 도전해 볼까요?';
+          document.getElementById('scrap-result-message').textContent =
+            `현재 ${scrapState.score}점으로 통과 기준인 80점에 조금 모자랍니다. 유광 코팅 전단지, 커피 얼룩 종이, 개인정보 서류를 주의하며 뒷면까지 꼭 확인해 보세요!`;
+        }
+      }
+
+      // ==========================================
+      // 9. 이벤트 리스너 등록
+      // ==========================================
+      function initEventListeners() {
+        const peopleSlider = document.getElementById('people-slider');
+        const peopleInput = document.getElementById('people-input');
+        const sheetsSlider = document.getElementById('sheets-slider');
+        const sheetsInput = document.getElementById('sheets-input');
+        const resetBtn = document.getElementById('reset-btn');
+
+        peopleSlider.addEventListener('input', function () {
+          state.people = Number(this.value);
+          peopleInput.value = state.people;
+          updateSimulation();
+        });
+
+        peopleInput.addEventListener('input', function () {
+          let val = parseInt(this.value, 10);
+          if (isNaN(val) || val < 1) val = 1;
+          if (val > 100000) val = 100000;
+          state.people = val;
+          peopleSlider.value = Math.min(val, 1000);
+          updateSimulation();
+        });
+
+        peopleInput.addEventListener('blur', function () {
+          this.value = state.people;
+        });
+
+        sheetsSlider.addEventListener('input', function () {
+          state.sheetsPerDay = Number(this.value);
+          sheetsInput.value = state.sheetsPerDay;
+          updateSimulation();
+        });
+
+        sheetsInput.addEventListener('input', function () {
+          let val = parseInt(this.value, 10);
+          if (isNaN(val) || val < 1) val = 1;
+          if (val > 500) val = 500;
+          state.sheetsPerDay = val;
+          sheetsSlider.value = Math.min(val, 50);
+          updateSimulation();
+        });
+
+        sheetsInput.addEventListener('blur', function () {
+          this.value = state.sheetsPerDay;
+        });
+
+        document.querySelectorAll('.preset-people').forEach((btn) => {
+          btn.addEventListener('click', function () {
+            const val = Number(this.getAttribute('data-people'));
+            state.people = val;
+            peopleInput.value = val;
+            peopleSlider.value = Math.min(val, 1000);
+            updateSimulation();
+          });
+        });
+
+        document.querySelectorAll('.preset-sheets').forEach((btn) => {
+          btn.addEventListener('click', function () {
+            const val = Number(this.getAttribute('data-sheets'));
+            state.sheetsPerDay = val;
+            sheetsInput.value = val;
+            sheetsSlider.value = Math.min(val, 50);
+            updateSimulation();
+          });
+        });
+
+        document.querySelectorAll('.preset-days').forEach((btn) => {
+          btn.addEventListener('click', function () {
+            state.days = Number(this.getAttribute('data-days'));
+            updateSimulation();
+          });
+        });
+
+        // 함수 그래프 모드 버튼
+        document.querySelectorAll('.graph-mode-btn').forEach((btn) => {
+          btn.addEventListener('click', function () {
+            state.graphMode = this.getAttribute('data-graph-mode');
+            updateSimulation();
+          });
+        });
+
+        // 기본값 초기화 버튼
+        resetBtn.addEventListener('click', function () {
+          state.people = 30;
+          state.sheetsPerDay = 3;
+          state.days = 365;
+          state.graphMode = 'both';
+
+          peopleInput.value = 30;
+          peopleSlider.value = 30;
+          sheetsInput.value = 3;
+          sheetsSlider.value = 3;
+
+          updateSimulation();
+        });
+
+        // 창 크기 변경 시 그래프 캔버스 재렌더링
+        window.addEventListener('resize', function () {
+          const totalSheets = state.people * state.sheetsPerDay * state.days;
+          renderFunctionGraph(totalSheets);
+        });
+
+        // 사운드 토글 버튼
+        document.getElementById('btn-toggle-sound').addEventListener('click', function () {
+          SoundFX.enabled = !SoundFX.enabled;
+          document.getElementById('sound-icon').textContent = SoundFX.enabled ? '🔊' : '🔇';
+          document.getElementById('sound-label').textContent = SoundFX.enabled ? '효과음 ON' : '효과음 OFF';
+        });
+
+        // 게임 시작 버튼
+        document.getElementById('btn-start-scrap-game').addEventListener('click', function () {
+          startScrapGame();
+        });
+
+        // 종이 카드 직접 클릭 또는 뒤집기 버튼 클릭
+        document.getElementById('paper-card-inner').addEventListener('click', function () {
+          setCardFlip(!scrapState.isFlipped, true);
+        });
+
+        document.getElementById('btn-flip-paper').addEventListener('click', function () {
+          setCardFlip(!scrapState.isFlipped, true);
+        });
+
+        // 이면지 가능 / 불가 판정 버튼
+        document.getElementById('btn-judge-usable').addEventListener('click', function () {
+          handleScrapJudgment(true);
+        });
+
+        document.getElementById('btn-judge-unusable').addEventListener('click', function () {
+          handleScrapJudgment(false);
+        });
+
+        // 다음 종이 또는 결과 보기 버튼
+        document.getElementById('btn-next-paper').addEventListener('click', function () {
+          if (scrapState.currentIndex < scrapState.deck.length - 1) {
+            scrapState.currentIndex += 1;
+            renderScrapCard();
+          } else {
+            showScrapFinalResult();
+          }
+        });
+
+        // 다시 도전하기 버튼
+        document.getElementById('btn-restart-scrap').addEventListener('click', function () {
+          startScrapGame();
+        });
+      }
+
+      // DOM 로드 완료 후 초기화 실행
+      window.addEventListener('DOMContentLoaded', function () {
+        initEventListeners();
+        updateSimulation();
+      });
+    })();
+  </script>
+</body>
+</html>
